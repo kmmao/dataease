@@ -432,10 +432,14 @@ export default {
   created() {
     this.timer = setInterval(() => {
       this.listTaskLog(false)
+    }, 5000);
+    this.taskTimer = setInterval(() => {
+      this.listTask(false)
     }, 5000)
   },
   beforeDestroy() {
     clearInterval(this.timer)
+    clearInterval(this.taskTimer)
   },
   methods: {
     calHeight() {
@@ -574,6 +578,18 @@ export default {
           return false
         }
 
+      })
+    },
+    changeTaskStatus(task) {
+      const param = task
+      param.status = task.status === 'Underway' ? 'Pending' : 'Underway'
+      post('/dataset/task/updateStatus', task).then(response => {
+        task.status = param.status
+        this.$message({
+          message: this.$t('dataset.task.change_success'),
+          type: 'success',
+          showClose: true
+        })
       })
     },
     deleteTask(task) {

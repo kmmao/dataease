@@ -11,8 +11,7 @@
           <el-input v-model="form.name" autocomplete="off" />
         </el-form-item>
         <el-form-item :label="$t('commons.description')" prop="desc">
-
-          <el-input v-model="form.desc" autocomplete="off" type="textarea" />
+          <el-input v-model="form.desc" autocomplete="off" />
         </el-form-item>
         <el-form-item :label="$t('datasource.type')" prop="type">
           <el-select v-model="form.type" :placeholder="$t('datasource.please_choose_type')" class="select-width" :disabled="formType=='modify' || (formType==='add' && params && !!params.type)" @change="changeType()">
@@ -26,10 +25,10 @@
         </el-form-item>
 
         <el-form-item v-if="form.configuration.dataSourceType=='jdbc'" :label="$t('datasource.host')" prop="configuration.host">
-          <el-input v-model="form.configuration.host" autocomplete="off" :disabled="formType=='modify'" />
+          <el-input v-model="form.configuration.host" autocomplete="off"  />
         </el-form-item>
         <el-form-item v-if="form.configuration.dataSourceType=='jdbc'" :label="$t('datasource.data_base')" prop="configuration.dataBase">
-          <el-input v-model="form.configuration.dataBase" autocomplete="off" :disabled="formType=='modify'" />
+          <el-input v-model="form.configuration.dataBase" autocomplete="off"  />
         </el-form-item>
 
         <el-form-item v-if="form.type=='oracle'" :label="$t('datasource.oracle_connection_type')" prop="configuration.connectionType">
@@ -38,7 +37,7 @@
         </el-form-item>
 
         <el-form-item v-if="form.configuration.dataSourceType=='jdbc'" :label="$t('datasource.user_name')" prop="configuration.username">
-          <el-input v-model="form.configuration.username" autocomplete="off" :disabled="formType=='modify'" />
+          <el-input v-model="form.configuration.username" autocomplete="off"  />
         </el-form-item>
         <el-form-item v-if="form.configuration.dataSourceType=='jdbc'" :label="$t('datasource.password')" prop="configuration.password">
           <el-input v-model="form.configuration.password" autocomplete="off" show-password />
@@ -46,14 +45,14 @@
         <el-form-item v-if="form.configuration.dataSourceType=='jdbc'" :label="$t('datasource.port')" prop="configuration.port">
           <el-input v-model="form.configuration.port" autocomplete="off" />
         </el-form-item>
-        <el-form-item v-if="form.type=='oracle'">
+        <el-form-item v-if="form.type=='oracle' || form.type=='sqlServer' || form.type=='pg'">
           <el-button icon="el-icon-plus" size="mini" @click="getSchema()">
             {{ $t('datasource.get_schema') }}
           </el-button>
         </el-form-item>
 
-        <el-form-item v-if="form.type=='oracle'" :label="$t('datasource.schema')">
-          <el-select filterable v-model="form.configuration.schema" :placeholder="$t('datasource.please_choose_schema')" class="select-width" :disabled="formType=='modify'">
+        <el-form-item v-if="form.type=='oracle' || form.type=='sqlServer' || form.type=='pg'" :label="$t('datasource.schema')">
+          <el-select filterable v-model="form.configuration.schema" :placeholder="$t('datasource.please_choose_schema')" class="select-width">
             <el-option
               v-for="item in schemas"
               :key="item"
@@ -62,7 +61,30 @@
             />
           </el-select>
         </el-form-item>
+        <el-collapse>
+          <el-collapse-item :title="$t('datasource.priority')" name="1">
 
+            <el-form-item v-if="form.configuration.dataSourceType=='jdbc'" :label="$t('datasource.initial_pool_size')" prop="configuration.initialPoolSize">
+              <el-input v-model="form.configuration.initialPoolSize" autocomplete="off" type="number" min="0" size="small" />
+            </el-form-item>
+            <el-form-item v-if="form.configuration.dataSourceType=='jdbc'" :label="$t('datasource.min_pool_size')" prop="configuration.minPoolSize">
+              <el-input v-model="form.configuration.minPoolSize" autocomplete="off" type="number" min="0"/>
+            </el-form-item>
+            <el-form-item v-if="form.configuration.dataSourceType=='jdbc'" :label="$t('datasource.max_pool_size')" prop="configuration.maxPoolSize">
+              <el-input v-model="form.configuration.maxPoolSize" autocomplete="off" type="number" min="0"/>
+            </el-form-item>
+            <el-form-item v-if="form.configuration.dataSourceType=='jdbc'" :label="$t('datasource.max_idle_time')" prop="configuration.maxIdleTime">
+              <el-input v-model="form.configuration.maxIdleTime" autocomplete="off" type="number" min="0"/>
+            </el-form-item>
+            <el-form-item v-if="form.configuration.dataSourceType=='jdbc'" :label="$t('datasource.acquire_increment')" prop="configuration.acquireIncrement">
+              <el-input v-model="form.configuration.acquireIncrement" autocomplete="off" type="number" min="0"/>
+            </el-form-item>
+            <el-form-item v-if="form.configuration.dataSourceType=='jdbc'" :label="$t('datasource.connect_timeout')" prop="configuration.connectTimeout">
+              <el-input v-model="form.configuration.connectTimeout" autocomplete="off" type="number" min="0"/>
+            </el-form-item>
+
+          </el-collapse-item>
+        </el-collapse>
       </el-form>
       <div v-if="canEdit" slot="footer" class="dialog-footer">
         <el-button v-if="formType==='add'?true: hasDataPermission('manage',params.privileges)" @click="validaDatasource">{{ $t('commons.validate') }}</el-button>
@@ -79,6 +101,8 @@
 <script>
 import LayoutContent from '@/components/business/LayoutContent'
 import { addDs, editDs, getSchema, validateDs } from '@/api/system/datasource'
+import { $confirm } from '@/utils/message'
+
 export default {
   name: 'DsForm',
   components: { LayoutContent },
@@ -90,7 +114,17 @@ export default {
   },
   data() {
     return {
-      form: { configuration: {}},
+      form: {
+        configuration: {
+          initialPoolSize: 5,
+          minPoolSize: 5,
+          maxPoolSize: 50,
+          maxIdleTime: 30,
+          acquireIncrement: 5,
+          idleConnectionTestPeriod: 5,
+          connectTimeout: 5
+        }
+      },
       rule: {
         name: [{ required: true, message: this.$t('datasource.input_name'), trigger: 'blur' },
           { min: 2, max: 25, message: this.$t('datasource.input_limit_2_25', [2, 25]), trigger: 'blur' }],
@@ -101,11 +135,21 @@ export default {
         'configuration.username': [{ required: true, message: this.$t('datasource.please_input_user_name'), trigger: 'blur' }],
         'configuration.password': [{ required: true, message: this.$t('datasource.please_input_password'), trigger: 'change' }],
         'configuration.host': [{ required: true, message: this.$t('datasource.please_input_host'), trigger: 'change' }],
-        'configuration.port': [{ required: true, message: this.$t('datasource.please_input_port'), trigger: 'change' }]
+        'configuration.port': [{ required: true, message: this.$t('datasource.please_input_port'), trigger: 'change' }],
+        'configuration.initialPoolSize': [{ required: true, message: this.$t('datasource.please_input_initial_pool_size'), trigger: 'change' }],
+        'configuration.minPoolSize': [{ required: true, message: this.$t('datasource.please_input_min_pool_size'), trigger: 'change' }],
+        'configuration.maxPoolSize': [{ required: true, message: this.$t('datasource.please_input_max_pool_size'), trigger: 'change' }],
+        'configuration.maxIdleTime': [{ required: true, message: this.$t('datasource.please_input_max_idle_time'), trigger: 'change' }],
+        'configuration.acquireIncrement': [{ required: true, message: this.$t('datasource.please_input_acquire_increment'), trigger: 'change' }],
+        'configuration.connectTimeout': [{ required: true, message: this.$t('datasource.please_input_connect_timeout'), trigger: 'change' }]
       },
-      allTypes: [{ name: 'mysql', label: 'MySQL', type: 'jdbc' }, { name: 'oracle', label: 'Oracle', type: 'jdbc' }],
+      allTypes: [{ name: 'mysql', label: 'MySQL', type: 'jdbc' },
+                { name: 'oracle', label: 'Oracle', type: 'jdbc' },
+                { name: 'sqlServer', label: 'SQL Server', type: 'jdbc' },
+                { name: 'pg', label: 'PostgreSQL', type: 'jdbc' }],
       schemas: [],
-      canEdit: false
+      canEdit: false,
+      originConfiguration: {}
     }
   },
 
@@ -125,9 +169,16 @@ export default {
   methods: {
     setType() {
       this.form.type = this.params.type
-      this.form.configuration = {}
+      this.form.configuration = {
+        initialPoolSize: 5,
+        minPoolSize: 5,
+        maxPoolSize: 50,
+        maxIdleTime: 30,
+        acquireIncrement: 5,
+        idleConnectionTestPeriod: 5,
+        connectTimeout: 5
+      }
       this.changeType()
-      console.log(this.form)
     },
     changeEdit() {
       this.canEdit = true
@@ -140,15 +191,41 @@ export default {
     edit(row) {
       this.formType = 'modify'
       this.form = Object.assign({}, row)
+      this.originConfiguration = this.form.configuration
       this.form.configuration = JSON.parse(this.form.configuration)
+      if (!this.form.configuration.initialPoolSize) {
+        this.form.configuration.initialPoolSize = 5
+      }
+      if (!this.form.configuration.minPoolSize) {
+        this.form.configuration.minPoolSize = 5
+      }
+      if (!this.form.configuration.maxPoolSize) {
+        this.form.configuration.maxPoolSize = 50
+      }
+      if (!this.form.configuration.maxIdleTime) {
+        this.form.configuration.maxIdleTime = 30
+      }
+      if (!this.form.configuration.acquireIncrement) {
+        this.form.configuration.acquireIncrement = 5
+      }
+      if (!this.form.configuration.idleConnectionTestPeriod) {
+        this.form.configuration.idleConnectionTestPeriod = 5
+      }
+      if (!this.form.configuration.connectTimeout) {
+        this.form.configuration.connectTimeout = 5
+      }
     },
-
     reset() {
       this.$refs.dsForm.resetFields()
     },
     save() {
-      if (!this.form.configuration.schema && this.form.type === 'oracle') {
+      if (!this.form.configuration.schema && (this.form.type === 'oracle' || this.form.type === 'sqlServer')) {
         this.$message.error(this.$t('datasource.please_choose_schema'))
+        return
+      }
+      if (this.form.configuration.initialPoolSize < 0 || this.form.configuration.minPoolSize < 0 || this.form.configuration.maxPoolSize < 0 || this.form.configuration.maxIdleTime < 0
+        || this.form.configuration.acquireIncrement < 0 || this.form.configuration.idleConnectionTestPeriod < 0 || this.form.configuration.connectTimeout < 0) {
+        this.$message.error(this.$t('datasource.no_less_then_0'))
         return
       }
       this.$refs.dsForm.validate(valid => {
@@ -156,11 +233,21 @@ export default {
           const method = this.formType === 'add' ? addDs : editDs
           const form = JSON.parse(JSON.stringify(this.form))
           form.configuration = JSON.stringify(form.configuration)
-          method(form).then(res => {
-            this.$success(this.$t('commons.save_success'))
-            this.refreshTree()
-            this.backToList()
-          })
+          if(this.formType !== 'add' && this.originConfiguration !== form.configuration) {
+            $confirm(this.$t('datasource.edit_datasource_msg'), () => {
+              method(form).then(res => {
+                this.$success(this.$t('commons.save_success'))
+                this.refreshTree()
+                this.backToList()
+              })
+            })
+          }else {
+            method(form).then(res => {
+              this.$success(this.$t('commons.save_success'))
+              this.refreshTree()
+              this.backToList()
+            })
+          }
         } else {
           return false
         }
@@ -226,5 +313,12 @@ export default {
   &:active {
     transform: scale(0.85);
   }
+}
+
+.el-input {
+  width: 300px;
+}
+.el-select {
+  width: 300px;
 }
 </style>

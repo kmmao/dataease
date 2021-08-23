@@ -11,7 +11,7 @@
           <el-dropdown-item icon="el-icon-download" @click.native="bottomComponent">{{ $t('panel.bottomComponent') }}</el-dropdown-item>
           <el-dropdown-item icon="el-icon-arrow-up" @click.native="upComponent">{{ $t('panel.upComponent') }}</el-dropdown-item>
           <el-dropdown-item icon="el-icon-arrow-down" @click.native="downComponent">{{ $t('panel.downComponent') }}</el-dropdown-item>
-          <el-dropdown-item icon="el-icon-link" @click.native="linkageSetting">联动设置</el-dropdown-item>
+          <el-dropdown-item v-if="'view'===curComponent.type" icon="el-icon-link" @click.native="linkageSetting">{{ $t('panel.linkage_setting') }}</el-dropdown-item>
         </el-dropdown-menu>
       </el-dropdown>
     </div>
@@ -21,6 +21,7 @@
 <script>
 import { mapState } from 'vuex'
 import bus from '@/utils/bus'
+import { getViewLinkageGather } from '@/api/panel/linkage'
 
 export default {
   data() {
@@ -122,7 +123,20 @@ export default {
       this.$store.commit('recordSnapshot')
     },
     linkageSetting() {
-      this.$store.commit('setLinkageSettingStatus', true)
+      debugger
+      // sourceViewId 也加入查询
+      const targetViewIds = this.componentData.filter(item => item.type === 'view' && item.propValue && item.propValue.viewId)
+        .map(item => item.propValue.viewId)
+
+      // 获取当前仪表板当前视图联动信息
+      const requestInfo = {
+        'panelId': this.$store.state.panel.panelInfo.id,
+        'sourceViewId': this.curComponent.propValue.viewId,
+        'targetViewIds': targetViewIds
+      }
+      getViewLinkageGather(requestInfo).then(rsp => {
+        this.$store.commit('setLinkageInfo', rsp.data)
+      })
     }
   }
 }

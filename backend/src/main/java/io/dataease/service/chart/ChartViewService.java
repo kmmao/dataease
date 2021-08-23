@@ -11,10 +11,7 @@ import io.dataease.commons.utils.AuthUtils;
 import io.dataease.commons.utils.BeanUtils;
 import io.dataease.commons.utils.CommonBeanFactory;
 import io.dataease.commons.utils.LogUtil;
-import io.dataease.controller.request.chart.ChartExtFilterRequest;
-import io.dataease.controller.request.chart.ChartExtRequest;
-import io.dataease.controller.request.chart.ChartGroupRequest;
-import io.dataease.controller.request.chart.ChartViewRequest;
+import io.dataease.controller.request.chart.*;
 import io.dataease.datasource.provider.DatasourceProvider;
 import io.dataease.datasource.provider.ProviderFactory;
 import io.dataease.datasource.request.DatasourceRequest;
@@ -110,6 +107,53 @@ public class ChartViewService {
         return group;
     }
 
+    public List<ChartViewDTO> search(ChartViewRequest chartViewRequest) {
+        String userId = String.valueOf(AuthUtils.getUser().getUserId());
+        chartViewRequest.setUserId(userId);
+        chartViewRequest.setSort("name asc");
+        List<ChartViewDTO> ds = extChartViewMapper.search(chartViewRequest);
+        if (CollectionUtils.isEmpty(ds)) {
+            return ds;
+        }
+
+        TreeSet<String> ids = new TreeSet<>();
+        ds.forEach(ele -> {
+            ele.setIsLeaf(true);
+            ele.setPid(ele.getSceneId());
+            ids.add(ele.getPid());
+        });
+
+        List<ChartViewDTO> group = new ArrayList<>();
+        ChartGroupRequest chartGroupRequest = new ChartGroupRequest();
+        chartGroupRequest.setUserId(userId);
+        chartGroupRequest.setIds(ids);
+        List<ChartGroupDTO> search = extChartGroupMapper.search(chartGroupRequest);
+        while (CollectionUtils.isNotEmpty(search)) {
+            ids.clear();
+            search.forEach(ele -> {
+                ChartViewDTO dto = new ChartViewDTO();
+                BeanUtils.copyBean(dto, ele);
+                dto.setIsLeaf(false);
+                dto.setType("group");
+                group.add(dto);
+                ids.add(ele.getPid());
+            });
+            chartGroupRequest.setIds(ids);
+            search = extChartGroupMapper.search(chartGroupRequest);
+        }
+
+        List<ChartViewDTO> res = new ArrayList<>();
+        Map<String, ChartViewDTO> map = new TreeMap<>();
+        group.forEach(ele -> map.put(ele.getId(), ele));
+        Iterator<Map.Entry<String, ChartViewDTO>> iterator = map.entrySet().iterator();
+        while (iterator.hasNext()) {
+            res.add(iterator.next().getValue());
+        }
+        res.sort(Comparator.comparing(ChartViewDTO::getName));
+        res.addAll(ds);
+        return res;
+    }
+
     public ChartViewWithBLOBs get(String id) {
         return chartViewMapper.selectByPrimaryKey(id);
     }
@@ -142,7 +186,11 @@ public class ChartViewService {
         }.getType());
         List<ChartViewFieldDTO> extStack = new Gson().fromJson(view.getExtStack(), new TypeToken<List<ChartViewFieldDTO>>() {
         }.getType());
+        List<ChartViewFieldDTO> extBubble = new Gson().fromJson(view.getExtBubble(), new TypeToken<List<ChartViewFieldDTO>>() {
+        }.getType());
         List<ChartFieldCustomFilterDTO> fieldCustomFilter = new Gson().fromJson(view.getCustomFilter(), new TypeToken<List<ChartFieldCustomFilterDTO>>() {
+        }.getType());
+        List<ChartViewFieldDTO> drill = new Gson().fromJson(view.getDrillFields(), new TypeToken<List<ChartViewFieldDTO>>() {
         }.getType());
         List<ChartCustomFilterDTO> customFilter = new ArrayList<>();
         for (ChartFieldCustomFilterDTO ele : fieldCustomFilter) {
@@ -172,6 +220,8 @@ public class ChartViewService {
 
         // 过滤来自仪表板的条件
         List<ChartExtFilterRequest> extFilterList = new ArrayList<>();
+
+        //组件过滤条件
         if (ObjectUtils.isNotEmpty(requestList.getFilter())) {
             for (ChartExtFilterRequest request : requestList.getFilter()) {
                 DatasetTableField datasetTableField = dataSetTableFieldsService.get(request.getFieldId());
@@ -183,6 +233,64 @@ public class ChartViewService {
                         }
                     } else {
                         extFilterList.add(request);
+                    }
+                }
+            }
+        }
+
+        //联动过滤条件联动条件全部加上
+        if (ObjectUtils.isNotEmpty(requestList.getLinkageFilters())) {
+            for (ChartExtFilterRequest request : requestList.getLinkageFilters()) {
+                DatasetTableField datasetTableField = dataSetTableFieldsService.get(request.getFieldId());
+                request.setDatasetTableField(datasetTableField);
+                if (StringUtils.equalsIgnoreCase(datasetTableField.getTableId(), view.getTableId())) {
+                    if (CollectionUtils.isNotEmpty(request.getViewIds())) {
+                        if (request.getViewIds().contains(view.getId())) {
+                            extFilterList.add(request);
+                        }
+                    } else {
+                        extFilterList.add(request);
+                    }
+                }
+            }
+        }
+
+        // 下钻
+        List<ChartExtFilterRequest> drillFilters = new ArrayList<>();
+        boolean isDrill = false;
+        List<ChartDrillRequest> drillRequest = requestList.getDrill();
+        if (CollectionUtils.isNotEmpty(drillRequest) && (drill.size() > drillRequest.size())) {
+            for (int i = 0; i < drillRequest.size(); i++) {
+                ChartDrillRequest request = drillRequest.get(i);
+                for (ChartDimensionDTO dto : request.getDimensionList()) {
+                    ChartViewFieldDTO chartViewFieldDTO = drill.get(i);
+                    // 将钻取值作为条件传递，将所有钻取字段作为xAxis并加上下一个钻取字段
+                    if (StringUtils.equalsIgnoreCase(dto.getId(), chartViewFieldDTO.getId())) {
+                        isDrill = true;
+                        DatasetTableField datasetTableField = dataSetTableFieldsService.get(dto.getId());
+                        ChartViewFieldDTO d = new ChartViewFieldDTO();
+                        BeanUtils.copyBean(d, datasetTableField);
+
+                        ChartExtFilterRequest drillFilter = new ChartExtFilterRequest();
+                        drillFilter.setFieldId(dto.getId());
+                        drillFilter.setValue(new ArrayList<String>() {{
+                            add(dto.getValue());
+                        }});
+                        drillFilter.setOperator("in");
+                        drillFilter.setDatasetTableField(datasetTableField);
+                        extFilterList.add(drillFilter);
+
+                        drillFilters.add(drillFilter);
+
+                        if (!checkDrillExist(xAxis, extStack, d, view)) {
+                            xAxis.add(d);
+                        }
+                        if (i == drillRequest.size() - 1) {
+                            ChartViewFieldDTO nextDrillField = drill.get(i + 1);
+                            if (!checkDrillExist(xAxis, extStack, nextDrillField, view)) {
+                                xAxis.add(nextDrillField);
+                            }
+                        }
                     }
                 }
             }
@@ -210,15 +318,19 @@ public class ChartViewService {
                 if (StringUtils.equalsIgnoreCase("text", view.getType()) || StringUtils.equalsIgnoreCase("gauge", view.getType())) {
                     datasourceRequest.setQuery(qp.getSQLSummary(dataTableInfoDTO.getTable(), yAxis, customFilter, extFilterList));
                 } else if (StringUtils.containsIgnoreCase(view.getType(), "stack")) {
-                    datasourceRequest.setQuery(qp.getSQLStack(dataTableInfoDTO.getTable(), xAxis, yAxis, customFilter, extFilterList, extStack));
+                    datasourceRequest.setQuery(qp.getSQLStack(dataTableInfoDTO.getTable(), xAxis, yAxis, customFilter, extFilterList, extStack, ds));
+                } else if (StringUtils.containsIgnoreCase(view.getType(), "scatter")) {
+                    datasourceRequest.setQuery(qp.getSQLScatter(dataTableInfoDTO.getTable(), xAxis, yAxis, customFilter, extFilterList, extBubble, ds));
                 } else {
-                    datasourceRequest.setQuery(qp.getSQL(dataTableInfoDTO.getTable(), xAxis, yAxis, customFilter, extFilterList));
+                    datasourceRequest.setQuery(qp.getSQL(dataTableInfoDTO.getTable(), xAxis, yAxis, customFilter, extFilterList, ds));
                 }
             } else if (StringUtils.equalsIgnoreCase(table.getType(), "sql")) {
                 if (StringUtils.equalsIgnoreCase("text", view.getType()) || StringUtils.equalsIgnoreCase("gauge", view.getType())) {
                     datasourceRequest.setQuery(qp.getSQLSummaryAsTmp(dataTableInfoDTO.getSql(), yAxis, customFilter, extFilterList));
                 } else if (StringUtils.containsIgnoreCase(view.getType(), "stack")) {
                     datasourceRequest.setQuery(qp.getSQLAsTmpStack(dataTableInfoDTO.getSql(), xAxis, yAxis, customFilter, extFilterList, extStack));
+                } else if (StringUtils.containsIgnoreCase(view.getType(), "scatter")) {
+                    datasourceRequest.setQuery(qp.getSQLAsTmpScatter(dataTableInfoDTO.getSql(), xAxis, yAxis, customFilter, extFilterList, extBubble));
                 } else {
                     datasourceRequest.setQuery(qp.getSQLAsTmp(dataTableInfoDTO.getSql(), xAxis, yAxis, customFilter, extFilterList));
                 }
@@ -230,6 +342,8 @@ public class ChartViewService {
                     datasourceRequest.setQuery(qp.getSQLSummaryAsTmp(sql, yAxis, customFilter, extFilterList));
                 } else if (StringUtils.containsIgnoreCase(view.getType(), "stack")) {
                     datasourceRequest.setQuery(qp.getSQLAsTmpStack(sql, xAxis, yAxis, customFilter, extFilterList, extStack));
+                } else if (StringUtils.containsIgnoreCase(view.getType(), "scatter")) {
+                    datasourceRequest.setQuery(qp.getSQLAsTmpScatter(sql, xAxis, yAxis, customFilter, extFilterList, extBubble));
                 } else {
                     datasourceRequest.setQuery(qp.getSQLAsTmp(sql, xAxis, yAxis, customFilter, extFilterList));
                 }
@@ -257,9 +371,11 @@ public class ChartViewService {
             if (StringUtils.equalsIgnoreCase("text", view.getType()) || StringUtils.equalsIgnoreCase("gauge", view.getType())) {
                 datasourceRequest.setQuery(qp.getSQLSummary(tableName, yAxis, customFilter, extFilterList));
             } else if (StringUtils.containsIgnoreCase(view.getType(), "stack")) {
-                datasourceRequest.setQuery(qp.getSQLStack(tableName, xAxis, yAxis, customFilter, extFilterList, extStack));
+                datasourceRequest.setQuery(qp.getSQLStack(tableName, xAxis, yAxis, customFilter, extFilterList, extStack, ds));
+            } else if (StringUtils.containsIgnoreCase(view.getType(), "scatter")) {
+                datasourceRequest.setQuery(qp.getSQLScatter(tableName, xAxis, yAxis, customFilter, extFilterList, extBubble, ds));
             } else {
-                datasourceRequest.setQuery(qp.getSQL(tableName, xAxis, yAxis, customFilter, extFilterList));
+                datasourceRequest.setQuery(qp.getSQL(tableName, xAxis, yAxis, customFilter, extFilterList, ds));
             }
             /*// 定时抽取使用缓存
             Object cache;
@@ -278,7 +394,9 @@ public class ChartViewService {
                 data = (List<String[]>) cache;
             }*/
             // 仪表板有参数不实用缓存
-            if (CollectionUtils.isNotEmpty(requestList.getFilter())) {
+            if (CollectionUtils.isNotEmpty(requestList.getFilter())
+                    || CollectionUtils.isNotEmpty(requestList.getLinkageFilters())
+                    || CollectionUtils.isNotEmpty(requestList.getDrill())) {
                 data = datasourceProvider.getData(datasourceRequest);
             } else {
                 try {
@@ -301,9 +419,16 @@ public class ChartViewService {
         // 图表组件可再扩展
         Map<String, Object> mapChart;
         if (StringUtils.containsIgnoreCase(view.getType(), "stack")) {
-            mapChart = transStackChartData(xAxis, yAxis, view, data, extStack);
+            mapChart = transStackChartData(xAxis, yAxis, view, data, extStack, isDrill);
+        } else if (StringUtils.containsIgnoreCase(view.getType(), "scatter")) {
+            mapChart = transScatterData(xAxis, yAxis, view, data, extBubble, isDrill);
+        } else if (StringUtils.containsIgnoreCase(view.getType(), "radar")) {
+            mapChart = transRadarChartData(xAxis, yAxis, view, data, isDrill);
+        } else if (StringUtils.containsIgnoreCase(view.getType(), "text")
+                || StringUtils.containsIgnoreCase(view.getType(), "gauge")) {
+            mapChart = transNormalChartData(xAxis, yAxis, view, data, isDrill);
         } else {
-            mapChart = transChartData(xAxis, yAxis, view, data);
+            mapChart = transChartData(xAxis, yAxis, view, data, isDrill);
         }
         // table组件，明细表，也用于导出数据
         Map<String, Object> mapTableNormal = transTableNormal(xAxis, yAxis, view, data, extStack);
@@ -315,7 +440,28 @@ public class ChartViewService {
         BeanUtils.copyBean(dto, view);
         dto.setData(map);
         dto.setSql(datasourceRequest.getQuery());
+
+        dto.setDrill(isDrill);
+        dto.setDrillFilters(drillFilters);
         return dto;
+    }
+
+    private boolean checkDrillExist(List<ChartViewFieldDTO> xAxis, List<ChartViewFieldDTO> extStack, ChartViewFieldDTO dto, ChartViewWithBLOBs view) {
+        if (CollectionUtils.isNotEmpty(xAxis)) {
+            for (ChartViewFieldDTO x : xAxis) {
+                if (StringUtils.equalsIgnoreCase(x.getId(), dto.getId())) {
+                    return true;
+                }
+            }
+        }
+        if (StringUtils.containsIgnoreCase(view.getType(), "stack") && CollectionUtils.isNotEmpty(extStack)) {
+            for (ChartViewFieldDTO x : extStack) {
+                if (StringUtils.equalsIgnoreCase(x.getId(), dto.getId())) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**
@@ -354,7 +500,69 @@ public class ChartViewService {
         return result;
     }
 
-    private Map<String, Object> transChartData(List<ChartViewFieldDTO> xAxis, List<ChartViewFieldDTO> yAxis, ChartViewWithBLOBs view, List<String[]> data) {
+    // 基础图形
+    private Map<String, Object> transChartData(List<ChartViewFieldDTO> xAxis, List<ChartViewFieldDTO> yAxis, ChartViewWithBLOBs view, List<String[]> data, boolean isDrill) {
+        Map<String, Object> map = new HashMap<>();
+
+        List<String> x = new ArrayList<>();
+        List<Series> series = new ArrayList<>();
+        for (ChartViewFieldDTO y : yAxis) {
+            Series series1 = new Series();
+            series1.setName(y.getName());
+            series1.setType(view.getType());
+            series1.setData(new ArrayList<>());
+            series.add(series1);
+        }
+        for (int i1 = 0; i1 < data.size(); i1++) {
+            String[] d = data.get(i1);
+
+            StringBuilder a = new StringBuilder();
+            for (int i = xAxis.size(); i < xAxis.size() + yAxis.size(); i++) {
+                List<ChartDimensionDTO> dimensionList = new ArrayList<>();
+                List<ChartQuotaDTO> quotaList = new ArrayList<>();
+                AxisChartDataDTO axisChartDataDTO = new AxisChartDataDTO();
+
+                for (int j = 0; j < xAxis.size(); j++) {
+                    ChartDimensionDTO chartDimensionDTO = new ChartDimensionDTO();
+                    chartDimensionDTO.setId(xAxis.get(j).getId());
+                    chartDimensionDTO.setValue(d[j]);
+                    dimensionList.add(chartDimensionDTO);
+                }
+                axisChartDataDTO.setDimensionList(dimensionList);
+
+                int j = i - xAxis.size();
+                ChartQuotaDTO chartQuotaDTO = new ChartQuotaDTO();
+                chartQuotaDTO.setId(yAxis.get(j).getId());
+                quotaList.add(chartQuotaDTO);
+                axisChartDataDTO.setQuotaList(quotaList);
+                try {
+                    axisChartDataDTO.setValue(new BigDecimal(StringUtils.isEmpty(d[i]) ? "0" : d[i]));
+                } catch (Exception e) {
+                    axisChartDataDTO.setValue(new BigDecimal(0));
+                }
+                series.get(j).getData().add(axisChartDataDTO);
+            }
+            if (isDrill) {
+                a.append(d[xAxis.size() - 1]);
+            } else {
+                for (int i = 0; i < xAxis.size(); i++) {
+                    if (i == xAxis.size() - 1) {
+                        a.append(d[i]);
+                    } else {
+                        a.append(d[i]).append("\n");
+                    }
+                }
+            }
+            x.add(a.toString());
+        }
+
+        map.put("x", x);
+        map.put("series", series);
+        return map;
+    }
+
+    // 常规图形
+    private Map<String, Object> transNormalChartData(List<ChartViewFieldDTO> xAxis, List<ChartViewFieldDTO> yAxis, ChartViewWithBLOBs view, List<String[]> data, boolean isDrill) {
         Map<String, Object> map = new HashMap<>();
 
         List<String> x = new ArrayList<>();
@@ -368,11 +576,15 @@ public class ChartViewService {
         }
         for (String[] d : data) {
             StringBuilder a = new StringBuilder();
-            for (int i = 0; i < xAxis.size(); i++) {
-                if (i == xAxis.size() - 1) {
-                    a.append(d[i]);
-                } else {
-                    a.append(d[i]).append("\n");
+            if (isDrill) {
+                a.append(d[xAxis.size() - 1]);
+            } else {
+                for (int i = 0; i < xAxis.size(); i++) {
+                    if (i == xAxis.size() - 1) {
+                        a.append(d[i]);
+                    } else {
+                        a.append(d[i]).append("\n");
+                    }
                 }
             }
             x.add(a.toString());
@@ -391,7 +603,50 @@ public class ChartViewService {
         return map;
     }
 
-    private Map<String, Object> transStackChartData(List<ChartViewFieldDTO> xAxis, List<ChartViewFieldDTO> yAxis, ChartViewWithBLOBs view, List<String[]> data, List<ChartViewFieldDTO> extStack) {
+    // radar图
+    private Map<String, Object> transRadarChartData(List<ChartViewFieldDTO> xAxis, List<ChartViewFieldDTO> yAxis, ChartViewWithBLOBs view, List<String[]> data, boolean isDrill) {
+        Map<String, Object> map = new HashMap<>();
+
+        List<String> x = new ArrayList<>();
+        List<Series> series = new ArrayList<>();
+        for (ChartViewFieldDTO y : yAxis) {
+            Series series1 = new Series();
+            series1.setName(y.getName());
+            series1.setType(view.getType());
+            series1.setData(new ArrayList<>());
+            series.add(series1);
+        }
+        for (String[] d : data) {
+            StringBuilder a = new StringBuilder();
+            if (isDrill) {
+                a.append(d[xAxis.size() - 1]);
+            } else {
+                for (int i = 0; i < xAxis.size(); i++) {
+                    if (i == xAxis.size() - 1) {
+                        a.append(d[i]);
+                    } else {
+                        a.append(d[i]).append("\n");
+                    }
+                }
+            }
+            x.add(a.toString());
+            for (int i = xAxis.size(); i < xAxis.size() + yAxis.size(); i++) {
+                int j = i - xAxis.size();
+                try {
+                    series.get(j).getData().add(new BigDecimal(StringUtils.isEmpty(d[i]) ? "0" : d[i]));
+                } catch (Exception e) {
+                    series.get(j).getData().add(new BigDecimal(0));
+                }
+            }
+        }
+
+        map.put("x", x);
+        map.put("series", series);
+        return map;
+    }
+
+    // 堆叠图
+    private Map<String, Object> transStackChartData(List<ChartViewFieldDTO> xAxis, List<ChartViewFieldDTO> yAxis, ChartViewWithBLOBs view, List<String[]> data, List<ChartViewFieldDTO> extStack, boolean isDrill) {
         Map<String, Object> map = new HashMap<>();
 
         List<String> x = new ArrayList<>();
@@ -399,15 +654,21 @@ public class ChartViewService {
         List<Series> series = new ArrayList<>();
 
         if (CollectionUtils.isNotEmpty(extStack)) {
+            AxisChartDataDTO defaultAxisChartDataDTO = new AxisChartDataDTO();
             BigDecimal defaultValue = StringUtils.containsIgnoreCase(view.getType(), "line") ? new BigDecimal(0) : null;
+            defaultAxisChartDataDTO.setValue(defaultValue);
             // 构建横轴
             for (String[] d : data) {
                 StringBuilder a = new StringBuilder();
-                for (int i = 0; i < xAxis.size(); i++) {
-                    if (i == xAxis.size() - 1) {
-                        a.append(d[i]);
-                    } else {
-                        a.append(d[i]).append("\n");
+                if (isDrill) {
+                    a.append(d[xAxis.size() - 1]);
+                } else {
+                    for (int i = 0; i < xAxis.size(); i++) {
+                        if (i == xAxis.size() - 1) {
+                            a.append(d[i]);
+                        } else {
+                            a.append(d[i]).append("\n");
+                        }
                     }
                 }
                 x.add(a.toString());
@@ -422,9 +683,9 @@ public class ChartViewService {
                 Series series1 = new Series();
                 series1.setName(s);
                 series1.setType(view.getType());
-                List<BigDecimal> list = new ArrayList<>();
+                List<Object> list = new ArrayList<>();
                 for (int i = 0; i < x.size(); i++) {
-                    list.add(defaultValue);
+                    list.add(defaultAxisChartDataDTO);
                 }
                 series1.setData(list);
                 series.add(series1);
@@ -435,15 +696,46 @@ public class ChartViewService {
                         String stackColumn = row[xAxis.size()];
                         if (StringUtils.equals(ss.getName(), stackColumn)) {
                             StringBuilder a = new StringBuilder();
-                            for (int j = 0; j < xAxis.size(); j++) {
-                                if (j == xAxis.size() - 1) {
-                                    a.append(row[j]);
-                                } else {
-                                    a.append(row[j]).append("\n");
+                            if (isDrill) {
+                                a.append(row[xAxis.size() - 1]);
+                            } else {
+                                for (int j = 0; j < xAxis.size(); j++) {
+                                    if (j == xAxis.size() - 1) {
+                                        a.append(row[j]);
+                                    } else {
+                                        a.append(row[j]).append("\n");
+                                    }
                                 }
                             }
                             if (StringUtils.equals(a.toString(), x.get(i))) {
-                                ss.getData().set(i, new BigDecimal(row[xAxis.size() + extStack.size()]));
+                                if (row.length > xAxis.size() + extStack.size()) {
+                                    List<ChartDimensionDTO> dimensionList = new ArrayList<>();
+                                    List<ChartQuotaDTO> quotaList = new ArrayList<>();
+                                    AxisChartDataDTO axisChartDataDTO = new AxisChartDataDTO();
+
+                                    ChartQuotaDTO chartQuotaDTO = new ChartQuotaDTO();
+                                    chartQuotaDTO.setId(yAxis.get(0).getId());
+                                    quotaList.add(chartQuotaDTO);
+                                    axisChartDataDTO.setQuotaList(quotaList);
+
+                                    for (int k = 0; k < xAxis.size(); k++) {
+                                        ChartDimensionDTO chartDimensionDTO = new ChartDimensionDTO();
+                                        chartDimensionDTO.setId(xAxis.get(k).getId());
+                                        chartDimensionDTO.setValue(row[k]);
+                                        dimensionList.add(chartDimensionDTO);
+                                    }
+                                    ChartDimensionDTO chartDimensionDTO = new ChartDimensionDTO();
+                                    chartDimensionDTO.setId(extStack.get(0).getId());
+                                    chartDimensionDTO.setValue(row[xAxis.size()]);
+                                    dimensionList.add(chartDimensionDTO);
+                                    axisChartDataDTO.setDimensionList(dimensionList);
+
+                                    String s = row[xAxis.size() + extStack.size()];
+                                    if (StringUtils.isNotEmpty(s)) {
+                                        axisChartDataDTO.setValue(new BigDecimal(s));
+                                        ss.getData().set(i, axisChartDataDTO);
+                                    }
+                                }
                                 break;
                             }
                         }
@@ -458,24 +750,47 @@ public class ChartViewService {
                 series1.setData(new ArrayList<>());
                 series.add(series1);
             }
-            for (String[] d : data) {
+            for (int i1 = 0; i1 < data.size(); i1++) {
+                String[] d = data.get(i1);
+
                 StringBuilder a = new StringBuilder();
-                for (int i = 0; i < xAxis.size(); i++) {
-                    if (i == xAxis.size() - 1) {
-                        a.append(d[i]);
-                    } else {
-                        a.append(d[i]).append("\n");
+                for (int i = xAxis.size(); i < xAxis.size() + yAxis.size(); i++) {
+                    List<ChartDimensionDTO> dimensionList = new ArrayList<>();
+                    List<ChartQuotaDTO> quotaList = new ArrayList<>();
+                    AxisChartDataDTO axisChartDataDTO = new AxisChartDataDTO();
+
+                    for (int j = 0; j < xAxis.size(); j++) {
+                        ChartDimensionDTO chartDimensionDTO = new ChartDimensionDTO();
+                        chartDimensionDTO.setId(xAxis.get(j).getId());
+                        chartDimensionDTO.setValue(d[j]);
+                        dimensionList.add(chartDimensionDTO);
+                    }
+                    axisChartDataDTO.setDimensionList(dimensionList);
+
+                    int j = i - xAxis.size();
+                    ChartQuotaDTO chartQuotaDTO = new ChartQuotaDTO();
+                    chartQuotaDTO.setId(yAxis.get(j).getId());
+                    quotaList.add(chartQuotaDTO);
+                    axisChartDataDTO.setQuotaList(quotaList);
+                    try {
+                        axisChartDataDTO.setValue(new BigDecimal(StringUtils.isEmpty(d[i]) ? "0" : d[i]));
+                    } catch (Exception e) {
+                        axisChartDataDTO.setValue(new BigDecimal(0));
+                    }
+                    series.get(j).getData().add(axisChartDataDTO);
+                }
+                if (isDrill) {
+                    a.append(d[xAxis.size() - 1]);
+                } else {
+                    for (int i = 0; i < xAxis.size(); i++) {
+                        if (i == xAxis.size() - 1) {
+                            a.append(d[i]);
+                        } else {
+                            a.append(d[i]).append("\n");
+                        }
                     }
                 }
                 x.add(a.toString());
-                for (int i = xAxis.size(); i < xAxis.size() + yAxis.size(); i++) {
-                    int j = i - xAxis.size();
-                    try {
-                        series.get(j).getData().add(new BigDecimal(StringUtils.isEmpty(d[i]) ? "0" : d[i]));
-                    } catch (Exception e) {
-                        series.get(j).getData().add(new BigDecimal(0));
-                    }
-                }
             }
         }
 
@@ -484,6 +799,123 @@ public class ChartViewService {
         return map;
     }
 
+    // 散点图
+    private Map<String, Object> transScatterData(List<ChartViewFieldDTO> xAxis, List<ChartViewFieldDTO> yAxis, ChartViewWithBLOBs view, List<String[]> data, List<ChartViewFieldDTO> extBubble, boolean isDrill) {
+        Map<String, Object> map = new HashMap<>();
+
+        List<String> x = new ArrayList<>();
+        List<Series> series = new ArrayList<>();
+        for (ChartViewFieldDTO y : yAxis) {
+            Series series1 = new Series();
+            series1.setName(y.getName());
+            series1.setType(view.getType());
+            series1.setData(new ArrayList<>());
+            series.add(series1);
+        }
+        for (int i1 = 0; i1 < data.size(); i1++) {
+            String[] d = data.get(i1);
+
+            StringBuilder a = new StringBuilder();
+            if (isDrill) {
+                a.append(d[xAxis.size() - 1]);
+            } else {
+                for (int i = 0; i < xAxis.size(); i++) {
+                    if (i == xAxis.size() - 1) {
+                        a.append(d[i]);
+                    } else {
+                        a.append(d[i]).append("\n");
+                    }
+                }
+            }
+            x.add(a.toString());
+            for (int i = xAxis.size(); i < xAxis.size() + yAxis.size(); i++) {
+                List<ChartDimensionDTO> dimensionList = new ArrayList<>();
+                List<ChartQuotaDTO> quotaList = new ArrayList<>();
+                ScatterChartDataDTO scatterChartDataDTO = new ScatterChartDataDTO();
+
+                for (int j = 0; j < xAxis.size(); j++) {
+                    ChartDimensionDTO chartDimensionDTO = new ChartDimensionDTO();
+                    chartDimensionDTO.setId(xAxis.get(j).getId());
+                    chartDimensionDTO.setValue(d[j]);
+                    dimensionList.add(chartDimensionDTO);
+                }
+                scatterChartDataDTO.setDimensionList(dimensionList);
+
+                int j = i - xAxis.size();
+                ChartQuotaDTO chartQuotaDTO = new ChartQuotaDTO();
+                chartQuotaDTO.setId(yAxis.get(j).getId());
+                quotaList.add(chartQuotaDTO);
+                scatterChartDataDTO.setQuotaList(quotaList);
+//                try {
+//                    axisChartDataDTO.setValue(new BigDecimal(StringUtils.isEmpty(d[i]) ? "0" : d[i]));
+//                } catch (Exception e) {
+//                    axisChartDataDTO.setValue(new BigDecimal(0));
+//                }
+                if (CollectionUtils.isNotEmpty(extBubble) && extBubble.size() > 0) {
+                    try {
+                        scatterChartDataDTO.setValue(new Object[]{
+                                a.toString(),
+                                new BigDecimal(StringUtils.isEmpty(d[i]) ? "0" : d[i]),
+                                new BigDecimal(StringUtils.isEmpty(d[xAxis.size() + yAxis.size()]) ? "0" : d[xAxis.size() + yAxis.size()])
+                        });
+                    } catch (Exception e) {
+                        scatterChartDataDTO.setValue(new Object[]{a.toString(), new BigDecimal(0), new BigDecimal(0)});
+                    }
+                } else {
+                    try {
+                        scatterChartDataDTO.setValue(new Object[]{
+                                a.toString(),
+                                new BigDecimal(StringUtils.isEmpty(d[i]) ? "0" : d[i])
+                        });
+                    } catch (Exception e) {
+                        scatterChartDataDTO.setValue(new Object[]{a.toString(), new BigDecimal(0)});
+                    }
+                }
+                series.get(j).getData().add(scatterChartDataDTO);
+            }
+        }
+
+        /*for (String[] d : data) {
+            StringBuilder a = new StringBuilder();
+            for (int i = 0; i < xAxis.size(); i++) {
+                if (i == xAxis.size() - 1) {
+                    a.append(d[i]);
+                } else {
+                    a.append(d[i]).append("\n");
+                }
+            }
+            x.add(a.toString());
+            for (int i = xAxis.size(); i < xAxis.size() + yAxis.size(); i++) {
+                int j = i - xAxis.size();
+                if (CollectionUtils.isNotEmpty(extBubble) && extBubble.size() > 0) {
+                    try {
+                        series.get(j).getData().add(new Object[]{
+                                a.toString(),
+                                new BigDecimal(StringUtils.isEmpty(d[i]) ? "0" : d[i]),
+                                new BigDecimal(StringUtils.isEmpty(d[xAxis.size() + yAxis.size()]) ? "0" : d[xAxis.size() + yAxis.size()])
+                        });
+                    } catch (Exception e) {
+                        series.get(j).getData().add(new Object[]{a.toString(), new BigDecimal(0), new BigDecimal(0)});
+                    }
+                } else {
+                    try {
+                        series.get(j).getData().add(new Object[]{
+                                a.toString(),
+                                new BigDecimal(StringUtils.isEmpty(d[i]) ? "0" : d[i])
+                        });
+                    } catch (Exception e) {
+                        series.get(j).getData().add(new Object[]{a.toString(), new BigDecimal(0)});
+                    }
+                }
+            }
+        }*/
+
+        map.put("x", x);
+        map.put("series", series);
+        return map;
+    }
+
+    // 表格
     private Map<String, Object> transTableNormal(List<ChartViewFieldDTO> xAxis, List<ChartViewFieldDTO> yAxis, ChartViewWithBLOBs view, List<String[]> data, List<ChartViewFieldDTO> extStack) {
         Map<String, Object> map = new TreeMap<>();
         List<ChartViewFieldDTO> fields = new ArrayList<>();

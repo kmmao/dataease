@@ -1,12 +1,12 @@
-FROM registry.cn-qingdao.aliyuncs.com/dataease/fabric8-java-alpine-openjdk8-jre
+FROM registry.cn-qingdao.aliyuncs.com/dataease/fabric8-java-alpine-openjdk8-jre:map
 
 ARG IMAGE_TAG
 
 RUN mkdir -p /opt/apps
 
-ADD backend/target/backend-1.0.0.jar /opt/apps
+ADD backend/target/backend-$IMAGE_TAG.jar /opt/apps
 
-ENV JAVA_APP_JAR=/opt/apps/backend-1.0.0.jar
+ENV JAVA_APP_JAR=/opt/apps/backend-$IMAGE_TAG.jar
 
 ENV AB_OFF=true
 

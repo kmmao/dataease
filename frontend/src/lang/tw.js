@@ -126,7 +126,8 @@ export default {
     expires: '登陸信息過期，請重新登陸',
     tokenError: '信息錯誤，請重新登陸',
     username_error: '請輸入正確的 ID',
-    password_error: '密碼不小於 8 位'
+    password_error: '密碼不小於 8 位',
+    re_login: '重新登陸'
   },
   commons: {
     no_target_permission: '沒有權限',
@@ -333,8 +334,11 @@ export default {
     input_pwd: '請輸入密碼',
     message_box: {
       alert: '警告',
-      confirm: '確認'
-    }
+      confirm: '確認',
+      ok: '確認',
+      cancel: '取消'
+    },
+    ukey_title: 'API Keys'
   },
   documentation: {
     documentation: '文檔',
@@ -692,6 +696,9 @@ export default {
     filter: '過濾',
     none: '無',
     background: '背景',
+    border: '邊角',
+    border_width: '邊框寬度',
+    border_radius: '邊框半徑',
     alpha: '透明度',
     add_filter: '添加過濾',
     no_limit: '無顯示',
@@ -825,7 +832,21 @@ export default {
     area: '地區',
     stack_item: '堆疊項',
     placeholder_field: '拖動字段至此處',
-    axis_label_rotate: '標簽角度'
+    axis_label_rotate: '標簽角度',
+    chart_scatter_bubble: '氣泡圖',
+    chart_scatter: '散點圖',
+    bubble_size: '氣泡大小',
+    chart_treemap: '矩形樹圖',
+    drill: '鉆取',
+    drag_block_treemap_label: '色塊標簽',
+    drag_block_treemap_size: '色塊大小',
+    bubble_symbol: '圖形',
+    gap_width: '間隔',
+    width: '寬度',
+    height: '高度',
+    system_case: '系統方案',
+    custom_case: '自定義',
+    last_layer: '当前已经是最后一级'
   },
   dataset: {
     sheet_warn: '有多個sheet頁面，默認抽取第一個',
@@ -990,7 +1011,14 @@ export default {
     click_ref_function: '點擊引用函數',
     field_manage: '字段管理',
     edit_calc_field: '編輯計算字段',
-    calc_field: '計算字段'
+    calc_field: '計算字段',
+    show_sql: '顯示SQL',
+    ple_select_excel: '請選擇要導入的 Excel',
+    merge: '合併',
+    no_merge: '不合併',
+    merge_msg: '數據表中存在自斷一直的情況，是否合併到一個數據集中?',
+    merge_title: '合併數據',
+    field_name_less_50: '字段名不能超過50個字符'
   },
   datasource: {
     datasource: '數據源',
@@ -1022,7 +1050,22 @@ export default {
     oracle_service_name: '服務名',
     get_schema: '獲取 Schema',
     schema: '數據庫 Schema',
-    please_choose_schema: '請選擇數據庫 Schema'
+    please_choose_schema: '請選擇數據庫 Schema',
+    in_valid: '無效數據源',
+    initial_pool_size: '初始連結數',
+    min_pool_size: '最小連結數',
+    max_pool_size: '最大連結數',
+    max_idle_time: '最大空閒(秒)',
+    acquire_increment: '增長數',
+    connect_timeout: '連接超時(秒)',
+    please_input_initial_pool_size: '請輸入初始連結數',
+    please_input_min_pool_size: '請輸入最小連結數',
+    please_input_max_pool_size: '請輸入最大連結數',
+    please_input_max_idle_time: '請輸入最大空閒(秒)',
+    please_input_acquire_increment: '請輸入增長數',
+    please_input_connect_timeout: '請輸入連接超時(秒)',
+    no_less_then_0: '高級設置中的參數不能小於零',
+    priority: '高級設置'
   },
   pblink: {
     key_pwd: '請輸入密碼打開鏈接',
@@ -1038,6 +1081,8 @@ export default {
     drag_here: '請將左側字段拖至此處',
     copy_link_passwd: '複製鏈接及密碼',
     copy_link: '複製鏈接',
+    copy_short_link: '複製短鏈接',
+    copy_short_link_passwd: '複製短鏈接及密碼',
     passwd_protect: '密碼保護',
     link: '鏈接',
     link_share: '鏈接分享',
@@ -1123,6 +1168,7 @@ export default {
     bottomComponent: '置底',
     upComponent: '上移',
     downComponent: '下移',
+    linkage_setting: '联动设置',
     open_aided_design: '打開組件輔助設計',
     close_aided_design: '關閉組件輔助設計',
     open_style_design: '打開樣式設計',
@@ -1163,7 +1209,14 @@ export default {
     panel_save_tips: '仪表板已变动，是否保存？',
     panel_save_warn_tips: '如果未保存，你对仪表板做的变更将会丢失！',
     do_not_save: '不保存',
-    save: '保存'
+    save: '保存',
+    drill: '下钻',
+    linkage: '联动',
+    cancel_linkage: '取消联动',
+    remove_all_linkage: '清除所有联动',
+    exit_un_march_linkage_field: '存在未匹配联动关系的字段',
+    details: '详情',
+    setting: '设置'
   },
   plugin: {
     local_install: '本地安裝',

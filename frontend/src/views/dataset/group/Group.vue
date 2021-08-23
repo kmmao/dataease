@@ -341,8 +341,7 @@
 </template>
 
 <script>
-import { loadTable, getScene, addGroup, delGroup, addTable, delTable, post , isKettleRunning} from '@/api/dataset/dataset'
-import { authModel } from '@/api/system/sysAuth'
+import { loadTable, getScene, addGroup, delGroup, addTable, delTable, post, isKettleRunning} from '@/api/dataset/dataset'
 import GroupMoveSelector from './GroupMoveSelector'
 import DsMoveSelector from './DsMoveSelector'
 
@@ -856,14 +855,18 @@ export default {
 
     searchTree(val) {
       const queryCondition = {
-        withExtend: 'parent',
-        modelType: 'dataset',
+        // withExtend: 'parent',
+        // modelType: 'dataset',
         name: val
       }
-      authModel(queryCondition).then(res => {
-        // this.highlights(res.data)
+      // authModel(queryCondition).then(res => {
+      //   // this.highlights(res.data)
+      //   this.tData = this.buildTree(res.data)
+      //   // console.log(this.tData)
+      // })
+
+      post('/dataset/table/search', queryCondition).then(res => {
         this.tData = this.buildTree(res.data)
-        // console.log(this.tData)
       })
     },
 
@@ -875,8 +878,8 @@ export default {
       const roots = []
       arrs.forEach(el => {
         // 判断根节点 ###
-        el.type = el.modelInnerType
-        el.isLeaf = el.leaf
+        // el.type = el.modelInnerType
+        // el.isLeaf = el.leaf
         if (el[this.treeProps.parentId] === null || el[this.treeProps.parentId] === 0 || el[this.treeProps.parentId] === '0') {
           roots.push(el)
           return
@@ -986,10 +989,12 @@ export default {
     text-overflow: ellipsis;
   }
   .father .child {
-    display: none;
+    /*display: none;*/
+    visibility: hidden;
   }
   .father:hover .child {
-    display: inline;
+    /*display: inline;*/
+    visibility: visible;
   }
 
   .dialog-css >>> .el-dialog__body {

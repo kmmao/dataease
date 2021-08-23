@@ -10,7 +10,12 @@ import io.dataease.base.mapper.ext.ExtSysMsgMapper;
 import io.dataease.commons.constants.SysMsgConstants;
 import io.dataease.commons.utils.AuthUtils;
 import io.dataease.commons.utils.CommonBeanFactory;
-import io.dataease.controller.message.dto.*;
+import io.dataease.controller.sys.request.BatchSettingRequest;
+import io.dataease.controller.sys.request.MsgRequest;
+import io.dataease.controller.sys.request.MsgSettingRequest;
+import io.dataease.controller.sys.response.MsgGridDto;
+import io.dataease.controller.sys.response.SettingTreeNode;
+import io.dataease.controller.sys.response.SubscribeNode;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.ObjectUtils;
 import org.springframework.cache.annotation.CacheEvict;
@@ -98,6 +103,13 @@ public class SysMsgService {
         example.setOrderByClause(orderClause);
         List<MsgGridDto> msgGridDtos = extSysMsgMapper.queryGrid(example);
         return msgGridDtos;
+    }
+
+    public Long queryCount(Long userId) {
+        SysMsgExample example = new SysMsgExample();
+        SysMsgExample.Criteria criteria = example.createCriteria();
+        criteria.andUserIdEqualTo(userId).andStatusEqualTo(false);
+        return sysMsgMapper.countByExample(example);
     }
 
     public void setReaded(Long msgId) {

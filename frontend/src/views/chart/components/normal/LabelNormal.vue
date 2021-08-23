@@ -6,11 +6,13 @@
       id="label-content"
       :style="content_class"
     >
-      <p v-for="item in chart.data.series" :key="item.name" :style="label_content_class">
-        {{ item.data[0] }}
-      </p>
-      <span v-if="quotaShow" :style="label_space">
-        <p v-if="dimensionShow" :style="label_class">
+      <span v-if="quotaShow" :style="label_class">
+        <p v-for="item in chart.data.series" :key="item.name" :style="label_content_class">
+          {{ item.data[0] }}
+        </p>
+      </span>
+      <span v-if="dimensionShow" :style="label_space">
+        <p :style="label_class">
           <!--        {{ chart.data.x[0] }}-->
           {{ chart.data.series[0].name }}
         </p>

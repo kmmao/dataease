@@ -257,13 +257,13 @@
 
     <!--添加视图-选择数据集-->
     <el-dialog
+      v-if="selectTableFlag"
       v-dialogDrag
       :title="$t('chart.add_chart')"
       :visible="selectTableFlag"
       :show-close="false"
       width="70%"
       class="dialog-css"
-      :destroy-on-close="true"
     >
       <el-row style="width: 800px;">
         <el-form ref="form" :model="table" label-width="80px" size="mini" class="form-item">
@@ -315,7 +315,6 @@
 
 <script>
 import { post, chartGroupTree } from '@/api/chart/chart'
-import { authModel } from '@/api/system/sysAuth'
 import TableSelector from '../view/TableSelector'
 import GroupMoveSelector from '../components/TreeSelector/GroupMoveSelector'
 import ChartMoveSelector from '../components/TreeSelector/ChartMoveSelector'
@@ -535,7 +534,8 @@ export default {
               type: 'success',
               showClose: true
             })
-            this.treeNode(this.groupForm)
+            // this.treeNode(this.groupForm)
+            this.refreshNodeBy(group.pid)
           })
         } else {
           // this.$message({
@@ -562,7 +562,7 @@ export default {
             // this.chartTree()
             this.refreshNodeBy(view.sceneId)
             // this.$router.push('/chart/home')
-            this.$emit('switchComponent', { name: '' })
+            // this.$emit('switchComponent', { name: '' })
             this.$store.dispatch('chart/setTable', null)
           })
         } else {
@@ -588,7 +588,8 @@ export default {
             message: this.$t('chart.delete_success'),
             showClose: true
           })
-          this.treeNode(this.groupForm)
+          // this.treeNode(this.groupForm)
+          this.refreshNodeBy(data.pid)
         })
       }).catch(() => {
       })
@@ -745,6 +746,8 @@ export default {
       view.yaxis = JSON.stringify([])
       view.extStack = JSON.stringify([])
       view.customFilter = JSON.stringify([])
+      view.drillFields = JSON.stringify([])
+      view.extBubble = JSON.stringify([])
       post('/chart/view/save', view).then(response => {
         this.closeCreateChart()
         this.$store.dispatch('chart/setTableId', null)
@@ -889,14 +892,18 @@ export default {
 
     searchTree(val) {
       const queryCondition = {
-        withExtend: 'parent',
-        modelType: 'chart',
+        // withExtend: 'parent',
+        // modelType: 'chart',
         name: val
       }
-      authModel(queryCondition).then(res => {
-        // this.highlights(res.data)
+      // authModel(queryCondition).then(res => {
+      //   // this.highlights(res.data)
+      //   this.tData = this.buildTree(res.data)
+      //   // console.log(this.tData)
+      // })
+
+      post('/chart/view/search', queryCondition).then(res => {
         this.tData = this.buildTree(res.data)
-        // console.log(this.tData)
       })
     },
 
@@ -908,8 +915,8 @@ export default {
       const roots = []
       arrs.forEach(el => {
         // 判断根节点 ###
-        el.type = el.modelInnerType
-        el.isLeaf = el.leaf
+        // el.type = el.modelInnerType
+        // el.isLeaf = el.leaf
         if (el[this.treeProps.parentId] === null || el[this.treeProps.parentId] === 0 || el[this.treeProps.parentId] === '0') {
           roots.push(el)
           return
@@ -1043,10 +1050,12 @@ export default {
     text-overflow: ellipsis;
   }
   .father .child {
-    display: none;
+    /*display: none;*/
+    visibility: hidden;
   }
   .father:hover .child {
-    display: inline;
+    /*display: inline;*/
+    visibility: visible;
   }
   .tree-style {
     padding: 10px 15px;
