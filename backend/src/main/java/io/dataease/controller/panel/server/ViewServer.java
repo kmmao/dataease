@@ -1,10 +1,10 @@
 package io.dataease.controller.panel.server;
 
-import io.dataease.base.domain.ChartView;
-import io.dataease.base.domain.ChartViewWithBLOBs;
 import io.dataease.commons.utils.TreeUtils;
 import io.dataease.controller.panel.api.ViewApi;
 import io.dataease.dto.panel.PanelViewDto;
+import io.dataease.plugins.common.base.domain.ChartView;
+import io.dataease.plugins.common.base.domain.ChartViewWithBLOBs;
 import io.dataease.service.chart.ChartViewService;
 import io.dataease.service.panel.PanelViewService;
 import org.apache.commons.collections4.CollectionUtils;
@@ -36,7 +36,6 @@ public class ViewServer implements ViewApi {
         if(CollectionUtils.isNotEmpty(groups)&&CollectionUtils.isNotEmpty(views)){
             groups.addAll(views);
         }
-//        List<PanelViewDto> panelViewDtos = panelViewService.buildTree(groups, views);
         return TreeUtils.mergeTree(groups);
     }
 

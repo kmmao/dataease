@@ -20,9 +20,6 @@ import org.springframework.context.annotation.DependsOn;
 @Configuration
 public class ShiroConfig {
 
-
-
-
     @Bean("securityManager")
     public DefaultWebSecurityManager getManager(F2CRealm f2cRealm) {
         DefaultWebSecurityManager manager = new DefaultWebSecurityManager();
@@ -51,6 +48,7 @@ public class ShiroConfig {
         filterMap.put("jwt", new JWTFilter());
         filterMap.put("logout", new F2CLogoutFilter());
         filterMap.put("link", new F2CLinkFilter());
+        filterMap.put("doc", new F2CDocFilter());
         factoryBean.setSecurityManager(securityManager);
         factoryBean.setLoginUrl("/login");
         factoryBean.setUnauthorizedUrl("/login");

@@ -1,7 +1,7 @@
 package io.dataease.commons.license;
 
-import io.dataease.base.domain.License;
-import io.dataease.base.mapper.LicenseMapper;
+import io.dataease.plugins.common.base.domain.License;
+import io.dataease.plugins.common.base.mapper.LicenseMapper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,7 +22,6 @@ class InnerLicenseService {
 
     License getLicense(String key) {
         License license = licenseMapper.selectByPrimaryKey(key);
-        if (license == null) return null;
         return license;
     }
 

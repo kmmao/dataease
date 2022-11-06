@@ -1,5 +1,8 @@
 package io.dataease.controller.panel.api;
 
+import com.github.xiaoymin.knife4j.annotations.ApiSupport;
+import io.dataease.auth.annotation.DePermission;
+import io.dataease.commons.constants.DePermissionType;
 import io.dataease.controller.sys.base.BaseGridRequest;
 import io.dataease.dto.panel.PanelStoreDto;
 import io.swagger.annotations.Api;
@@ -16,9 +19,11 @@ import java.util.List;
  */
 
 @Api(tags = "仪表板：收藏管理")
+@ApiSupport(order = 190)
 @RequestMapping("/api/store")
 public interface StoreApi {
 
+    @DePermission(type = DePermissionType.PANEL)
     @ApiOperation("创建收藏")
     @PostMapping("/{id}")
     void store(@PathVariable("id") String id);
@@ -30,7 +35,12 @@ public interface StoreApi {
 
 
     @ApiOperation("移除收藏")
-    @PostMapping("/remove/{storeId}")
-    void remove(@PathVariable("storeId") String storeId);
+    @PostMapping("/remove/{panelId}")
+    void remove(@PathVariable("panelId") String panelId);
+
+    @ApiOperation("收藏状态")
+    @PostMapping("/status/{id}")
+    Boolean hasStar(@PathVariable("id") String id);
+
 
 }

@@ -1,16 +1,16 @@
 package io.dataease.service.dataset;
 
-import io.dataease.base.domain.*;
-import io.dataease.base.mapper.DatasetTableFunctionMapper;
-import io.dataease.commons.utils.DorisTableUtils;
-import io.dataease.datasource.service.DatasourceService;
-import org.apache.commons.lang3.ObjectUtils;
+import io.dataease.plugins.common.base.domain.DatasetTable;
+import io.dataease.plugins.common.base.domain.DatasetTableFunction;
+import io.dataease.plugins.common.base.domain.DatasetTableFunctionExample;
+import io.dataease.plugins.common.base.domain.Datasource;
+import io.dataease.plugins.common.base.mapper.DatasetTableFunctionMapper;
+import io.dataease.service.datasource.DatasourceService;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
 import java.util.List;
-import java.util.UUID;
 
 /**
  * @Author gin
@@ -35,6 +35,7 @@ public class DatasetFunctionService {
         if (StringUtils.isNotEmpty(datasetTableFunction.getDbType())) {
             criteria.andDbTypeEqualTo(datasetTableFunction.getDbType());
         }
+        datasetTableFunctionExample.setOrderByClause("name asc");
         return datasetTableFunctionMapper.selectByExampleWithBLOBs(datasetTableFunctionExample);
     }
 

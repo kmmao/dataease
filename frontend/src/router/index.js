@@ -72,20 +72,24 @@ export const constantRoutes = [
     ]
   },
   {
-    path: '/preview/:reportId',
-    component: () => import('@/components/canvas/components/Editor/PreviewEject'),
+    path: '/delink',
+    component: () => import('@/views/link'),
     hidden: true
   },
 
   {
-    path: '/previewFullScreen',
-    component: () => import('@/components/canvas/components/Editor/PreviewFullScreen'),
+    path: '/preview/:reportId',
+    component: () => import('@/components/canvas/components/Editor/PreviewEject'),
     hidden: true
   },
   {
-    path: '/',
-    component: Layout,
-    redirect: '/panel/index',
+    path: '/previewScreenShot/:reportId/:backScreenShot',
+    component: () => import('@/components/canvas/components/Editor/PreviewEject'),
+    hidden: true
+  },
+  {
+    path: '/previewFullScreen',
+    component: () => import('@/components/canvas/components/Editor/PreviewFullScreen'),
     hidden: true
   }
 
@@ -208,7 +212,7 @@ export const constantRoutes = [
 ]
 
 const createRouter = () => new Router({
-  // mode: 'history', // require service support
+//   mode: 'history', // require service support
   mode: 'hash',
   scrollBehavior: () => ({ y: 0 }),
   routes: constantRoutes

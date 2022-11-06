@@ -4,8 +4,17 @@ export function query(pageIndex, pageSize, data) {
   return request({
     url: '/api/sys_msg/list/' + pageIndex + '/' + pageSize,
     method: 'post',
-    loading: false,
+    loading: true,
     data
+  })
+}
+
+export function unReadCount() {
+  return request({
+    url: '/api/sys_msg/unReadCount',
+    method: 'post',
+    loading: false
+    // data
   })
 }
 
@@ -23,6 +32,14 @@ export function batchRead(data) {
     method: 'post',
     loading: true,
     data
+  })
+}
+
+export function allRead() {
+  return request({
+    url: '/api/sys_msg/allRead',
+    method: 'post',
+    loading: true
   })
 }
 

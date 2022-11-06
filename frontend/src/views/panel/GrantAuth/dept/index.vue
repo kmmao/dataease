@@ -1,30 +1,48 @@
 <template>
-  <div class="my_table">
-    <el-table
-      ref="table"
-      :data="data"
-      lazy
-      :show-header="true"
-      :load="loadExpandDatas"
-      style="width: 100%"
-      :row-style="{height: '35px'}"
-      :tree-props="{children: 'children', hasChildren: 'hasChildren'}"
-      row-key="deptId"
-    >
-      <el-table-column :label="$t('panel.all_org')" prop="name" />
-      <el-table-column type="selection" fixd />
-      <!-- <el-table-column label="分享给" prop="deptId" width="80" fixed="right">
-        <template slot-scope="scope">
-          <el-checkbox :v-model="scope.row.deptId===0" />
-        </template>
-      </el-table-column> -->
-    </el-table>
-  </div>
+  <el-col>
+    <el-row class="tree-head">
+      <span style="float: left;padding-left: 10px">{{ $t('panel.all_org') }}</span>
+
+    </el-row>
+    <el-row style="margin-top: 5px">
+
+      <el-tree
+        ref="tree"
+        :data="treeData"
+        lazy
+        :load="loadTree"
+        style="width: 100%"
+        :props="defaultProps"
+        :default-expanded-keys="expandNodeIds"
+        node-key="deptId"
+      >
+        <span
+          slot-scope="{ node, data }"
+          class="custom-tree-node"
+        >
+          <span>
+            <span style="margin-left: 6px">{{ node.data.name }}</span>
+          </span>
+          <span @click.stop>
+
+            <div>
+              <span class="auth-span">
+                <el-checkbox
+                  v-model="data.checked"
+                  @change="nodeStatusChange(data)"
+                />
+              </span>
+            </div>
+          </span>
+        </span>
+      </el-tree>
+    </el-row>
+  </el-col>
 </template>
 
 <script>
 import { getDeptTree, loadTable } from '@/api/system/dept'
-import { saveShare, loadShares } from '@/api/panel/share'
+import { loadShares } from '@/api/panel/share'
 export default {
   name: 'GrantDept',
   props: {
@@ -39,7 +57,7 @@ export default {
   },
   data() {
     return {
-      data: [],
+      treeData: [],
       defaultCondition: {
         field: 'pid',
         operator: 'eq',
@@ -48,12 +66,21 @@ export default {
       type: 2, // 类型2代表组织
       shares: [],
       changeIndex: 0,
-      timeMachine: null
+      timeMachine: null,
+      defaultProps: {
+        children: 'children',
+        label: 'name',
+        isLeaf: (data, node) => {
+          return !data.hasChildren
+        }
+      },
+      expandNodeIds: [],
+      sharesLoad: false
     }
   },
   watch: {
     keyWord(v, o) {
-      this.destryTimeMachine()
+      this.destroyTimeMachine()
       this.changeIndex++
       this.searchWithKey(this.changeIndex)
     }
@@ -74,16 +101,16 @@ export default {
           }
           this.search(condition)
         }
-        this.destryTimeMachine()
+        this.destroyTimeMachine()
       }, 1500)
     },
-    destryTimeMachine() {
+    destroyTimeMachine() {
       this.timeMachine && clearTimeout(this.timeMachine)
       this.timeMachine = null
     },
-    // 加载下一级子节点数据
-    loadExpandDatas(row, treeNode, resolve) {
-      getDeptTree(row.deptId).then(res => {
+    loadTree(node, resolve) {
+      if (!node || !node.data || !node.data.deptId) return
+      getDeptTree(node.data.deptId).then(res => {
         let data = res.data
         data = data.map(obj => {
           if (obj.subCount > 0) {
@@ -91,25 +118,31 @@ export default {
           }
           return obj
         })
-        // this.maps.set(row.deptId, { row, treeNode, resolve })
+        this.setCheckExpandNodes(data)
         resolve && resolve(data)
-        this.$nextTick(() => {
-          this.setCheckExpandNodes(data)
-        })
       })
     },
+
     // 加载表格数据
     search(condition) {
-      // this.setTableAttr()
-
-      this.data = []
+      this.treeData = []
       let param = {}
       if (condition && condition.value) {
         param = { conditions: [condition] }
       } else {
         param = { conditions: [this.defaultCondition] }
       }
+      if (!this.sharesLoad) {
+        this.queryShareNodeIds(() => {
+          this.sharesLoad = true
+          this.loadTreeData(param, condition)
+        })
+      } else {
+        this.loadTreeData(param, condition)
+      }
+    },
 
+    loadTreeData(param, condition) {
       loadTable(param).then(res => {
         let data = res.data
         data = data.map(obj => {
@@ -119,22 +152,25 @@ export default {
           return obj
         })
 
+        this.setCheckExpandNodes(data)
+        this.expandNodeIds = []
         if (condition && condition.value) {
-          data = data.map(node => {
-            delete (node.hasChildren)
-            return node
-          })
-          this.data = this.buildTree(data)
+          this.treeData = this.buildTree(data)
           this.$nextTick(() => {
-            data.forEach(node => {
-              this.$refs.table.toggleRowExpansion(node, true)
-            })
+            this.expandResult(this.treeData)
           })
         } else {
-          this.data = data
+          this.treeData = data
         }
+      })
+    },
 
-        this.queryShareNodeIds()
+    expandResult(list) {
+      list.forEach(node => {
+        if (node.children && node.children.length > 0) {
+          this.expandNodeIds.push(node.deptId)
+          this.expandResult(node.children)
+        }
       })
     },
 
@@ -160,21 +196,10 @@ export default {
 
     getSelected() {
       return {
-        deptIds: this.$refs.table.store.states.selection.map(item => item.deptId)
+        deptIds: this.shares
       }
     },
 
-    save(msg) {
-      const rows = this.$refs.table.store.states.selection
-      const request = this.buildRequest(rows)
-      saveShare(request).then(res => {
-        this.$success(msg)
-        return true
-      }).catch(err => {
-        this.$error(err.message)
-        return false
-      })
-    },
     cancel() {
     },
 
@@ -189,31 +214,31 @@ export default {
     },
 
     queryShareNodeIds(callBack) {
-      const conditionResourceId = { field: 'panel_group_id', operator: 'eq', value: this.resourceId }
-      const conditionType = { field: 'type', operator: 'eq', value: this.type }
-      const param = { conditions: [conditionResourceId, conditionType] }
+      const param = { resourceId: this.resourceId, type: this.type }
       loadShares(param).then(res => {
         const shares = res.data
         const nodeIds = shares.map(share => share.targetId)
         this.shares = nodeIds
-        this.$nextTick(() => {
-          this.setCheckNodes()
-        })
+
         callBack && callBack()
       })
     },
 
-    setCheckNodes() {
-      this.data.forEach(node => {
-        const nodeId = node.deptId
-        this.shares.includes(nodeId) && this.$refs.table.toggleRowSelection(node, true)
-      })
-    },
     setCheckExpandNodes(rows) {
       rows.forEach(node => {
         const nodeId = node.deptId
-        this.shares.includes(nodeId) && this.$refs.table.toggleRowSelection(node, true)
+        this.shares.includes(nodeId) && (node.checked = true)
       })
+    },
+
+    nodeStatusChange(val) {
+      if (val.checked) {
+        if (!this.shares.includes(val.deptId)) {
+          this.shares.push(val.deptId)
+        }
+      } else {
+        this.shares = this.shares.filter(deptId => deptId !== val.deptId)
+      }
     }
 
   }
@@ -222,21 +247,59 @@ export default {
 
 <style scoped>
 
-.my_table >>> .el-table__row>td{
+.custom-tree-node {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+    padding-left: 8px;
+  }
+  .tree-main{
+    height:  calc(100vh - 210px);
+    overflow-y: auto;
+  }
+  /* .tree-head{
+    height: 30px;
+    line-height: 30px;
+    border-bottom: 1px solid #e6e6e6;
+    background-color: #f7f8fa;
+    font-size: 12px;
+    color: #3d4d66 ;
+  } */
+  .tree-head{
+    height: 30px;
+    line-height: 30px;
+    border-bottom: 1px solid var(--TableBorderColor, #e6e6e6);
+    background-color: var(--SiderBG, #f7f8fa);
+    font-size: 12px;
+    color: var(--TableColor, #3d4d66) ;
+  }
+
+  .auth-span{
+    float: right;
+    width:50px;
+    margin-right: 30px
+  }
+  .highlights-text {
+    color: #faaa39 !important;
+  }
+
+.my_table ::v-deep .el-table__row>td{
   /* 去除表格线 */
   border: none;
   padding: 0 0;
 }
-.my_table >>> .el-table th.is-leaf {
+.my_table ::v-deep .el-table th.is-leaf {
   /* 去除上边框 */
     border: none;
 }
-.my_table >>> .el-table::before{
+.my_table ::v-deep .el-table::before{
   /* 去除下边框 */
   height: 0;
 }
 
-.my_table>>>.el-table-column--selection .cell{
+.my_table::v-deep.el-table-column--selection .cell{
   text-align: center;
 }
 </style>

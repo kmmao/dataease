@@ -1,8 +1,16 @@
 <template>
 
-  <el-select v-if="options!== null && options.attrs!==null" v-model="values" :multiple="options.attrs.multiple" :placeholder="options.attrs.placeholder"  :popper-append-to-body="inScreen" @change="changeValue">
+  <el-select
+    v-if="options!== null && options.attrs!==null"
+    v-model="values"
+    :size="size"
+    :multiple="options.attrs.multiple"
+    :placeholder="options.attrs.placeholder"
+    :popper-append-to-body="inScreen"
+    @change="changeValue"
+  >
     <el-option
-      v-for="item in options.attrs.datas"
+      v-for="item in options.attrs.data"
       :key="item[options.attrs.key]"
       :label="item[options.attrs.label]"
       :value="item[options.attrs.value]"
@@ -28,7 +36,8 @@ export default {
       type: Boolean,
       required: false,
       default: true
-    }
+    },
+    size: String
   },
   data() {
     return {

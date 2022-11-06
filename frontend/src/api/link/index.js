@@ -26,6 +26,14 @@ export function setPwd(data) {
   })
 }
 
+export function setOverTime(data) {
+  return request({
+    url: 'api/link/resetOverTime',
+    method: 'post',
+    data
+  })
+}
+
 export function switchValid(data) {
   return request({
     url: 'api/link/switchLink',
@@ -52,16 +60,23 @@ export function loadGenerate(resourceId) {
 export function loadResource(resourceId) {
   return request({
     url: 'api/link/resourceDetail/' + resourceId,
-    method: 'post'
+    method: 'get'
   })
 }
 
-export function viewInfo(id, data) {
+export function viewInfo(id, panelId, data) {
   return request({
-    url: 'api/link/viewDetail/' + id,
+    url: 'api/link/viewDetail/' + id + '/' + panelId,
     method: 'post',
-    timeout: 30000,
     hideMsg: true,
+    data
+  })
+}
+
+export function shortUrl(data) {
+  return request({
+    url: 'api/link/shortUrl',
+    method: 'post',
     data
   })
 }

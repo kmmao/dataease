@@ -1,121 +1,235 @@
 <template>
-  <el-col class="tree-style">
+  <el-col class="de-dataset-search">
     <!-- group -->
-    <el-col v-if="!sceneMode">
-      <el-row class="title-css">
+    <el-col>
+      <div
+        style="margin: 6px 0 16px 0"
+        class="title-css"
+      >
         <span class="title-text">
           {{ $t('dataset.datalist') }}
         </span>
-        <el-button icon="el-icon-plus" type="text" size="mini" style="float: right;" @click="add('group')">
-          <!--          {{ $t('dataset.add_group') }}-->
-        </el-button>
-      </el-row>
-      <el-divider />
-
-      <!--      <el-row>-->
-      <!--        <el-button type="primary" size="mini" @click="add('group')">-->
-      <!--          {{ $t('dataset.add_group') }}-->
-      <!--        </el-button>-->
-      <!--        <el-button type="primary" size="mini" @click="add('scene')">-->
-      <!--          {{ $t('dataset.add_scene') }}-->
-      <!--        </el-button>-->
-      <!--      </el-row>-->
-
-      <el-row>
-        <el-form>
-          <el-form-item class="form-item">
-            <el-input
-              v-model="search"
-              size="mini"
-              :placeholder="$t('dataset.search')"
-              prefix-icon="el-icon-search"
-              clearable
+        <el-dropdown
+          size="small"
+          placement="bottom-start"
+          @command="(type) => clickAddData(type)"
+        >
+          <span class="el-dropdown-link">
+            <i
+              class="el-icon-plus"
+              @click.stop
             />
-          </el-form-item>
-        </el-form>
+          </span>
+          <el-dropdown-menu
+            slot="dropdown"
+            class="de-dataset-dropdown de-card-dropdown"
+          >
+            <el-dropdown-item command="db">
+              <svg-icon
+                icon-class="ds-db"
+                class="ds-icon-db"
+              />
+              {{ $t('dataset.db_data') }}
+            </el-dropdown-item>
+            <el-dropdown-item command="sql">
+              <svg-icon
+                icon-class="ds-sql"
+                class="ds-icon-sql"
+              />
+              {{ $t('dataset.sql_data') }}
+            </el-dropdown-item>
+            <el-dropdown-item
+              command="excel"
+              :disabled="!kettleRunning && engineMode !== 'simple'"
+            >
+              <svg-icon
+                icon-class="ds-excel"
+                class="ds-icon-excel"
+              />
+              {{ $t('dataset.excel_data') }}
+            </el-dropdown-item>
+            <el-dropdown-item command="union">
+              <svg-icon
+                icon-class="ds-union"
+                class="ds-icon-union"
+              />
+              {{ $t('dataset.union_data') }}
+            </el-dropdown-item>
+            <el-dropdown-item command="api">
+              <svg-icon
+                icon-class="ds-api"
+                class="ds-icon-api"
+              />
+              {{ $t('dataset.api_data') }}
+            </el-dropdown-item>
+            <el-dropdown-item
+              class="de-top-border"
+              command="group"
+            >
+              <svg-icon
+                icon-class="scene"
+                class="ds-icon-db"
+              />
+              {{ $t('deDataset.new_folder') }}
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </el-dropdown>
+      </div>
+      <el-row style="margin-bottom: 6px">
+        <el-input
+          v-model="filterText"
+          size="small"
+          :placeholder="$t('deDataset.search_by_name')"
+          prefix-icon="el-icon-search"
+          clearable
+          class="main-area-input"
+        >
+          <el-select
+            slot="append"
+            v-model="searchType"
+            :placeholder="searchMap[searchType]"
+          >
+            <el-option
+              :label="$t('commons.all')"
+              value="all"
+            />
+            <el-option
+              :label="$t('commons.folder')"
+              value="folder"
+            />
+          </el-select>
+        </el-input>
       </el-row>
-
-      <el-col class="custom-tree-container">
+      <el-col class="custom-tree-container de-tree">
         <div class="block">
+          <div
+            v-if="!tData.length && !treeLoading"
+            class="no-tdata"
+          >
+            {{ $t('deDataset.no_dataset_click') }}
+            <span
+              class="no-tdata-new"
+              @click="() => clickAdd()"
+            >{{
+              $t('deDataset.create')
+            }}</span>
+          </div>
           <el-tree
-            ref="asyncTree"
+            v-else
+            ref="datasetTreeRef"
             :default-expanded-keys="expandedArray"
             :data="tData"
             node-key="id"
-            :expand-on-click-node="true"
-            :load="loadNode"
-            lazy
-            :props="treeProps"
             highlight-current
+            :expand-on-click-node="true"
+            :filter-node-method="filterNode"
+            @node-expand="nodeExpand"
+            @node-collapse="nodeCollapse"
             @node-click="nodeClick"
           >
-            <span v-if="data.type === 'group'" slot-scope="{ node, data }" class="custom-tree-node father">
-              <span style="display: flex;flex: 1;width: 0;">
-                <!--                <span v-if="data.type === 'scene'">-->
-                <!--                  &lt;!&ndash;                  <el-button&ndash;&gt;-->
-                <!--                  &lt;!&ndash;                    icon="el-icon-folder-opened"&ndash;&gt;-->
-                <!--                  &lt;!&ndash;                    type="text"&ndash;&gt;-->
-                <!--                  &lt;!&ndash;                    size="mini"&ndash;&gt;-->
-                <!--                  &lt;!&ndash;                  />&ndash;&gt;-->
-                <!--                  <svg-icon icon-class="scene" class="ds-icon-scene" />-->
-                <!--                </span>-->
+            <span
+              v-if="data.modelInnerType === 'group'"
+              slot-scope="{ node, data }"
+              class="custom-tree-node father"
+            >
+              <span style="display: flex; flex: 1; width: 0">
                 <span>
-                  <i class="el-icon-folder" />
+                  <svg-icon icon-class="scene" />
                 </span>
-                <span style="margin-left: 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" :title="data.name">{{ data.name }}</span>
+                <span
+                  style="
+                    margin-left: 6px;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                  "
+                  :title="data.name"
+                >{{ data.name }}</span>
               </span>
-              <span v-if="hasDataPermission('manage',data.privileges)" class="child">
-                <span v-if="data.type ==='group'" @click.stop>
-                  <el-dropdown trigger="click" size="small" @command="clickAdd">
+              <span
+                v-if="hasDataPermission('manage', data.privileges)"
+                class="child"
+              >
+                <span
+                  v-if="data.modelInnerType === 'group'"
+                  @click.stop
+                >
+                  <el-dropdown
+                    size="small"
+                    placement="bottom-start"
+                    @command="(type) => clickAddData(type, data)"
+                  >
                     <span class="el-dropdown-link">
-                      <el-button
-                        icon="el-icon-plus"
-                        type="text"
-                        size="small"
+                      <i
+                        class="el-icon-plus"
+                        @click.stop
                       />
                     </span>
-                    <el-dropdown-menu slot="dropdown">
-                      <el-dropdown-item icon="el-icon-folder-add" :command="beforeClickAdd('group',data,node)">
-                        <span style="font-size: 13px;">{{ $t('dataset.group') }}</span>
+                    <el-dropdown-menu
+                      slot="dropdown"
+                      class="de-dataset-dropdown de-card-dropdown"
+                    >
+                      <el-dropdown-item command="db">
+                        <svg-icon
+                          icon-class="ds-db"
+                          class="ds-icon-db"
+                        />
+                        {{ $t('dataset.db_data') }}
                       </el-dropdown-item>
-                      <el-dropdown-item icon="el-icon-circle-plus">
-                        <!--                        {{ $t('dataset.scene') }}-->
-                        <el-dropdown size="small" placement="right-start" @command="clickAddData">
-                          <!--                          <el-button type="primary" size="mini" plain>-->
-                          <!--                            {{ $t('dataset.add_table') }}-->
-                          <!--                          </el-button>-->
-                          <span class="el-dropdown-link inner-dropdown-menu">
-                            <span>
-                              <!--                              <i class="el-icon-sort" />-->
-                              <span style="font-size: 13px;">{{ $t('dataset.add_table') }}</span>
-                            </span>
-                            <i class="el-icon-arrow-right el-icon--right" />
-                          </span>
-                          <el-dropdown-menu slot="dropdown">
-                            <el-dropdown-item :command="beforeClickAddData('db',data)">
-                              <svg-icon icon-class="ds-db" class="ds-icon-db" />
-                              {{ $t('dataset.db_data') }}
-                            </el-dropdown-item>
-                            <el-dropdown-item :command="beforeClickAddData('sql',data)">
-                              <svg-icon icon-class="ds-sql" class="ds-icon-sql" />
-                              {{ $t('dataset.sql_data') }}
-                            </el-dropdown-item>
-                            <el-dropdown-item :command="beforeClickAddData('excel',data)" :disabled="!kettleRunning">
-                              <svg-icon icon-class="ds-excel" class="ds-icon-excel" />
-                              {{ $t('dataset.excel_data') }}
-                            </el-dropdown-item>
-                            <el-dropdown-item :command="beforeClickAddData('custom',data)">
-                              <svg-icon icon-class="ds-custom" class="ds-icon-custom" />
-                              {{ $t('dataset.custom_data') }}
-                            </el-dropdown-item>
-                          </el-dropdown-menu>
-                        </el-dropdown>
+                      <el-dropdown-item command="sql">
+                        <svg-icon
+                          icon-class="ds-sql"
+                          class="ds-icon-sql"
+                        />
+                        {{ $t('dataset.sql_data') }}
+                      </el-dropdown-item>
+                      <el-dropdown-item
+                        command="excel"
+                        :disabled="!kettleRunning && engineMode !== 'simple'"
+                      >
+                        <svg-icon
+                          icon-class="ds-excel"
+                          class="ds-icon-excel"
+                        />
+                        {{ $t('dataset.excel_data') }}
+                      </el-dropdown-item>
+                      <el-dropdown-item command="union">
+                        <svg-icon
+                          icon-class="ds-union"
+                          class="ds-icon-union"
+                        />
+                        {{ $t('dataset.union_data') }}
+                      </el-dropdown-item>
+                      <el-dropdown-item command="api">
+                        <svg-icon
+                          icon-class="ds-api"
+                          class="ds-icon-api"
+                        />
+                        {{ $t('dataset.api_data') }}
+                      </el-dropdown-item>
+                      <el-dropdown-item
+                        class="de-top-border"
+                        command="group"
+                      >
+                        <svg-icon
+                          icon-class="scene"
+                          class="ds-icon-db"
+                        />
+                        {{ $t('deDataset.new_folder') }}
                       </el-dropdown-item>
                     </el-dropdown-menu>
                   </el-dropdown>
                 </span>
-                <span style="margin-left: 12px;" @click.stop>
-                  <el-dropdown trigger="click" size="small" @command="clickMore">
+                <span
+                  style="margin-left: 12px"
+                  @click.stop
+                >
+                  <el-dropdown
+                    trigger="click"
+                    size="small"
+                    placement="bottom-start"
+                    @command="(type) => clickMore(type, data, node)"
+                  >
                     <span class="el-dropdown-link">
                       <el-button
                         icon="el-icon-more"
@@ -123,14 +237,20 @@
                         size="small"
                       />
                     </span>
-                    <el-dropdown-menu slot="dropdown">
-                      <el-dropdown-item icon="el-icon-edit-outline" :command="beforeClickMore('rename',data,node)">
+                    <el-dropdown-menu
+                      slot="dropdown"
+                      class="de-card-dropdown"
+                    >
+                      <el-dropdown-item command="rename">
+                        <svg-icon icon-class="de-ds-rename" />
                         {{ $t('dataset.rename') }}
                       </el-dropdown-item>
-                      <el-dropdown-item icon="el-icon-right" :command="beforeClickMore('move',data,node)">
+                      <el-dropdown-item command="move">
+                        <svg-icon icon-class="de-ds-move" />
                         {{ $t('dataset.move_to') }}
                       </el-dropdown-item>
-                      <el-dropdown-item icon="el-icon-delete" :command="beforeClickMore('delete',data,node)">
+                      <el-dropdown-item command="delete">
+                        <svg-icon icon-class="de-ds-trash" />
                         {{ $t('dataset.delete') }}
                       </el-dropdown-item>
                     </el-dropdown-menu>
@@ -138,23 +258,89 @@
                 </span>
               </span>
             </span>
-            <span v-else slot-scope="{ node, data }" class="custom-tree-node-list father">
-              <span style="display: flex;flex: 1;width: 0;">
+            <span
+              v-else
+              slot-scope="{ node, data }"
+              class="custom-tree-node-list father"
+            >
+              <span style="display: flex; flex: 1; width: 0">
                 <span>
-                  <svg-icon v-if="data.type === 'db'" icon-class="ds-db" class="ds-icon-db" />
-                  <svg-icon v-if="data.type === 'sql'" icon-class="ds-sql" class="ds-icon-sql" />
-                  <svg-icon v-if="data.type === 'excel'" icon-class="ds-excel" class="ds-icon-excel" />
-                  <svg-icon v-if="data.type === 'custom'" icon-class="ds-custom" class="ds-icon-custom" />
+                  <svg-icon
+                    v-if="data.modelInnerType === 'db'"
+                    icon-class="ds-db"
+                    class="ds-icon-db"
+                  />
+                  <svg-icon
+                    v-if="data.modelInnerType === 'sql'"
+                    icon-class="ds-sql"
+                    class="ds-icon-sql"
+                  />
+                  <svg-icon
+                    v-if="data.modelInnerType === 'excel'"
+                    icon-class="ds-excel"
+                    class="ds-icon-excel"
+                  />
+                  <svg-icon
+                    v-if="data.modelInnerType === 'custom'"
+                    icon-class="ds-custom"
+                    class="ds-icon-custom"
+                  />
+                  <svg-icon
+                    v-if="data.modelInnerType === 'union'"
+                    icon-class="ds-union"
+                    class="ds-icon-union"
+                  />
+                  <svg-icon
+                    v-if="data.modelInnerType === 'api'"
+                    icon-class="ds-api"
+                    class="ds-icon-api"
+                  />
                 </span>
-                <span v-if="data.type === 'db' || data.type === 'sql'">
-                  <span v-if="data.mode === 0" style="margin-left: 6px"><i class="el-icon-s-operation" /></span>
-                  <span v-if="data.mode === 1" style="margin-left: 6px"><i class="el-icon-alarm-clock" /></span>
+                <span v-if="['db', 'sql'].includes(data.modelInnerType)">
+                  <span
+                    v-if="data.mode === 0"
+                    style="margin-left: 6px"
+                  ><i
+                    class="el-icon-s-operation"
+                  /></span>
+                  <span
+                    v-if="data.mode === 1"
+                    style="margin-left: 6px"
+                  ><i
+                    class="el-icon-alarm-clock"
+                  /></span>
                 </span>
-                <span style="margin-left: 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" :title="data.name">{{ data.name }}</span>
+                <span
+                  style="
+                    margin-left: 6px;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                  "
+                  :class="[
+                    {
+                      'de-fill-block': !['db', 'sql'].includes(
+                        data.modelInnerType
+                      )
+                    }
+                  ]"
+                  :title="data.name"
+                >{{ data.name }}</span>
               </span>
-              <span v-if="hasDataPermission('manage',data.privileges)" class="child">
-                <span style="margin-left: 12px;" @click.stop>
-                  <el-dropdown trigger="click" size="small" @command="clickMore">
+              <span
+                v-if="hasDataPermission('manage', data.privileges)"
+                class="child"
+              >
+                <span
+                  style="margin-left: 12px"
+                  @click.stop
+                >
+                  <el-dropdown
+                    trigger="click"
+                    size="small"
+                    placement="bottom-start"
+                    @command="(type) => clickMore(type, data, node)"
+                  >
                     <span class="el-dropdown-link">
                       <el-button
                         icon="el-icon-more"
@@ -162,14 +348,20 @@
                         size="small"
                       />
                     </span>
-                    <el-dropdown-menu slot="dropdown">
-                      <el-dropdown-item icon="el-icon-edit-outline" :command="beforeClickMore('editTable',data,node)">
+                    <el-dropdown-menu
+                      slot="dropdown"
+                      class="de-card-dropdown"
+                    >
+                      <el-dropdown-item command="editTable">
+                        <svg-icon icon-class="de-ds-rename" />
                         {{ $t('dataset.rename') }}
                       </el-dropdown-item>
-                      <el-dropdown-item icon="el-icon-right" :command="beforeClickMore('moveDs',data,node)">
+                      <el-dropdown-item command="moveDs">
+                        <svg-icon icon-class="de-ds-move" />
                         {{ $t('dataset.move_to') }}
                       </el-dropdown-item>
-                      <el-dropdown-item icon="el-icon-delete" :command="beforeClickMore('deleteTable',data,node)">
+                      <el-dropdown-item command="deleteTable">
+                        <svg-icon icon-class="de-ds-trash" />
                         {{ $t('dataset.delete') }}
                       </el-dropdown-item>
                     </el-dropdown-menu>
@@ -181,184 +373,204 @@
         </div>
       </el-col>
 
-      <el-dialog v-dialogDrag :title="dialogTitle" :visible="editGroup" :show-close="false" width="30%">
-        <el-form ref="groupForm" :model="groupForm" :rules="groupFormRules" @keypress.enter.native="saveGroup(groupForm)">
-          <el-form-item :label="$t('commons.name')" prop="name">
-            <el-input v-model="groupForm.name" />
+      <el-dialog
+        :title="dialogTitle"
+        class="de-dialog-form"
+        :visible.sync="editGroup"
+        width="600px"
+      >
+        <el-form
+          ref="groupForm"
+          class="de-form-item"
+          :model="groupForm"
+          :rules="groupFormRules"
+          :before-close="close"
+          @submit.native.prevent
+          @keypress.enter.native="saveGroup(groupForm)"
+        >
+          <el-form-item
+            :label="$t('deDataset.folder_name')"
+            prop="name"
+          >
+            <el-input
+              v-model.trim="groupForm.name"
+              placeholder="请输入文件夹名称"
+            />
           </el-form-item>
         </el-form>
-        <div slot="footer" class="dialog-footer">
-          <el-button size="mini" @click="close()">{{ $t('dataset.cancel') }}</el-button>
-          <el-button type="primary" size="mini" @click="saveGroup(groupForm)">{{ $t('dataset.confirm') }}
-          </el-button>
+        <div
+          slot="footer"
+          class="dialog-footer"
+        >
+          <deBtn
+            secondary
+            @click="close()"
+          >{{ $t('dataset.cancel') }}</deBtn>
+          <deBtn
+            type="primary"
+            @click="saveGroup(groupForm)"
+          >{{ $t('dataset.confirm') }}
+          </deBtn>
         </div>
       </el-dialog>
     </el-col>
 
-    <!--scene-->
-    <!--    <el-col v-if="sceneMode">-->
-    <!--      <el-row class="title-css scene-title">-->
-    <!--        <span class="title-text scene-title-name" :title="currGroup.name">-->
-    <!--          {{ currGroup.name }}-->
-    <!--        </span>-->
-    <!--        <el-button icon="el-icon-back" size="mini" style="float: right" circle @click="back">-->
-    <!--          &lt;!&ndash;          {{ $t('dataset.back') }}&ndash;&gt;-->
-    <!--        </el-button>-->
-    <!--      </el-row>-->
-    <!--      <el-divider />-->
-    <!--      <el-row>-->
-    <!--        <el-dropdown style="margin-right: 10px;" size="small" trigger="click" @command="clickAddData">-->
-    <!--          <el-button type="primary" size="mini" plain>-->
-    <!--            {{ $t('dataset.add_table') }}-->
-    <!--          </el-button>-->
-    <!--          <el-dropdown-menu slot="dropdown">-->
-    <!--            <el-dropdown-item :command="beforeClickAddData('db')">-->
-    <!--              <svg-icon icon-class="ds-db" class="ds-icon-db" />-->
-    <!--              {{ $t('dataset.db_data') }}-->
-    <!--            </el-dropdown-item>-->
-    <!--            <el-dropdown-item :command="beforeClickAddData('sql')">-->
-    <!--              <svg-icon icon-class="ds-sql" class="ds-icon-sql" />-->
-    <!--              {{ $t('dataset.sql_data') }}-->
-    <!--            </el-dropdown-item>-->
-    <!--            <el-dropdown-item :command="beforeClickAddData('excel')">-->
-    <!--              <svg-icon icon-class="ds-excel" class="ds-icon-excel" />-->
-    <!--              {{ $t('dataset.excel_data') }}-->
-    <!--            </el-dropdown-item>-->
-    <!--            <el-dropdown-item :command="beforeClickAddData('custom')">-->
-    <!--              <svg-icon icon-class="ds-custom" class="ds-icon-custom" />-->
-    <!--              {{ $t('dataset.custom_data') }}-->
-    <!--            </el-dropdown-item>-->
-    <!--          </el-dropdown-menu>-->
-    <!--        </el-dropdown>-->
-    <!--        &lt;!&ndash; <el-button type="primary" size="mini" plain>-->
-    <!--          {{ $t('dataset.update') }}-->
-    <!--        </el-button>-->
-    <!--        <el-button type="primary" size="mini" plain>-->
-    <!--          {{ $t('dataset.process') }}-->
-    <!--        </el-button> &ndash;&gt;-->
-    <!--      </el-row>-->
-    <!--      <el-row>-->
-    <!--        <el-form>-->
-    <!--          <el-form-item class="form-item">-->
-    <!--            <el-input-->
-    <!--              v-model="search"-->
-    <!--              size="mini"-->
-    <!--              :placeholder="$t('dataset.search')"-->
-    <!--              prefix-icon="el-icon-search"-->
-    <!--              clearable-->
-    <!--            />-->
-    <!--          </el-form-item>-->
-    <!--        </el-form>-->
-    <!--      </el-row>-->
-    <!--      <span v-show="false">{{ sceneData }}</span>-->
-    <!--      <el-tree-->
-    <!--        :data="tableData"-->
-    <!--        node-key="id"-->
-    <!--        :expand-on-click-node="true"-->
-    <!--        class="tree-list"-->
-    <!--        highlight-current-->
-    <!--        @node-click="sceneClick"-->
-    <!--      >-->
-    <!--        <span slot-scope="{ node, data }" class="custom-tree-node-list father">-->
-    <!--          <span style="display: flex;flex: 1;width: 0;">-->
-    <!--            <span>-->
-    <!--              <svg-icon v-if="data.type === 'db'" icon-class="ds-db" class="ds-icon-db" />-->
-    <!--              <svg-icon v-if="data.type === 'sql'" icon-class="ds-sql" class="ds-icon-sql" />-->
-    <!--              <svg-icon v-if="data.type === 'excel'" icon-class="ds-excel" class="ds-icon-excel" />-->
-    <!--              <svg-icon v-if="data.type === 'custom'" icon-class="ds-custom" class="ds-icon-custom" />-->
-    <!--            </span>-->
-    <!--            <span v-if="data.type === 'db' || data.type === 'sql'">-->
-    <!--              <span v-if="data.mode === 0" style="margin-left: 6px"><i class="el-icon-s-operation" /></span>-->
-    <!--              <span v-if="data.mode === 1" style="margin-left: 6px"><i class="el-icon-alarm-clock" /></span>-->
-    <!--            </span>-->
-    <!--            <span style="margin-left: 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" :title="data.name">{{ data.name }}</span>-->
-    <!--          </span>-->
-    <!--          <span v-if="hasDataPermission('manage',data.privileges)" class="child">-->
-    <!--            <span style="margin-left: 12px;" @click.stop>-->
-    <!--              <el-dropdown trigger="click" size="small" @command="clickMore">-->
-    <!--                <span class="el-dropdown-link">-->
-    <!--                  <el-button-->
-    <!--                    icon="el-icon-more"-->
-    <!--                    type="text"-->
-    <!--                    size="small"-->
-    <!--                  />-->
-    <!--                </span>-->
-    <!--                <el-dropdown-menu slot="dropdown">-->
-    <!--                  <el-dropdown-item icon="el-icon-edit-outline" :command="beforeClickMore('editTable',data,node)">-->
-    <!--                    {{ $t('dataset.rename') }}-->
-    <!--                  </el-dropdown-item>-->
-    <!--                  <el-dropdown-item icon="el-icon-right" :command="beforeClickMore('moveDs',data,node)">-->
-    <!--                    {{ $t('dataset.move_to') }}-->
-    <!--                  </el-dropdown-item>-->
-    <!--                  <el-dropdown-item icon="el-icon-delete" :command="beforeClickMore('deleteTable',data,node)">-->
-    <!--                    {{ $t('dataset.delete') }}-->
-    <!--                  </el-dropdown-item>-->
-    <!--                </el-dropdown-menu>-->
-    <!--              </el-dropdown>-->
-    <!--            </span>-->
-    <!--          </span>-->
-    <!--        </span>-->
-    <!--      </el-tree>-->
-    <!--    </el-col>-->
-
-    <el-dialog v-dialogDrag :title="$t('dataset.table')" :visible="editTable" :show-close="false" width="30%">
-      <el-form ref="tableForm" :model="tableForm" :rules="tableFormRules" @keypress.enter.native="saveTable(tableForm)">
-        <el-form-item :label="$t('commons.name')" prop="name">
+    <el-dialog
+      :title="$t('deDataset.edit_dataset')"
+      :visible.sync="editTable"
+      class="de-dialog-form"
+      width="600px"
+    >
+      <el-form
+        ref="tableForm"
+        :model="tableForm"
+        class="de-form-item"
+        :rules="tableFormRules"
+        @submit.native.prevent
+        @keypress.enter.native="saveTable(tableForm)"
+      >
+        <el-form-item
+          :label="$t('dataset.name')"
+          prop="name"
+        >
           <el-input v-model="tableForm.name" />
         </el-form-item>
-        <!--          <el-form-item :label="$t('dataset.mode')" prop="mode">-->
-        <!--            <el-radio v-model="tableForm.mode" label="0">{{ $t('dataset.direct_connect') }}</el-radio>-->
-        <!--            <el-radio v-model="tableForm.mode" label="1">{{ $t('dataset.sync_data') }}</el-radio>-->
-        <!--          </el-form-item>-->
       </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button size="mini" @click="closeTable()">{{ $t('dataset.cancel') }}</el-button>
-        <el-button type="primary" size="mini" @click="saveTable(tableForm)">{{ $t('dataset.confirm') }}
-        </el-button>
+      <div
+        slot="footer"
+        class="dialog-footer"
+      >
+        <deBtn
+          secondary
+          @click="closeTable()"
+        >{{
+          $t('dataset.cancel')
+        }}</deBtn>
+        <deBtn
+          type="primary"
+          @click="saveTable(tableForm)"
+        >{{ $t('dataset.confirm') }}
+        </deBtn>
       </div>
     </el-dialog>
 
     <!--移动分组-->
-    <el-dialog v-dialogDrag :title="moveDialogTitle" :visible="moveGroup" :show-close="false" width="30%" class="dialog-css">
-      <group-move-selector :item="groupForm" @targetGroup="targetGroup" />
-      <div slot="footer" class="dialog-footer">
-        <el-button size="mini" @click="closeMoveGroup()">{{ $t('dataset.cancel') }}</el-button>
-        <el-button :disabled="groupMoveConfirmDisabled" type="primary" size="mini" @click="saveMoveGroup(tGroup)">{{ $t('dataset.confirm') }}
-        </el-button>
+    <el-drawer
+      :visible.sync="moveGroup"
+      custom-class="de-user-drawer sql-dataset-drawer"
+      size="600px"
+      direction="rtl"
+    >
+      <template slot="title">
+        {{ $t('dataset.m1') }}
+        <span
+          :title="moveDialogTitle"
+          class="text-overflow"
+        >{{
+          moveDialogTitle
+        }}</span>
+        {{ $t('dataset.m2') }}
+      </template>
+      <group-move-selector
+        move-dir
+        :item="groupForm"
+        @targetGroup="targetGroup"
+      />
+      <div class="de-foot">
+        <deBtn
+          secondary
+          @click="closeMoveGroup()"
+        >{{
+          $t('dataset.cancel')
+        }}</deBtn>
+        <deBtn
+          :disabled="groupMoveConfirmDisabled"
+          type="primary"
+          @click="saveMoveGroup(tGroup)"
+        >{{ $t('dataset.confirm') }}
+        </deBtn>
       </div>
-    </el-dialog>
+    </el-drawer>
 
     <!--移动数据集-->
-    <el-dialog v-dialogDrag :title="moveDialogTitle" :visible="moveDs" :show-close="false" width="30%" class="dialog-css">
-      <ds-move-selector :item="dsForm" @targetDs="targetDs" />
-      <div slot="footer" class="dialog-footer">
-        <el-button size="mini" @click="closeMoveDs()">{{ $t('dataset.cancel') }}</el-button>
-        <el-button :disabled="dsMoveConfirmDisabled" type="primary" size="mini" @click="saveMoveDs(tDs)">{{ $t('dataset.confirm') }}
-        </el-button>
+    <el-drawer
+      :visible.sync="moveDs"
+      custom-class="de-user-drawer sql-dataset-drawer"
+      size="600px"
+      direction="rtl"
+    >
+      <template slot="title">
+        {{ $t('dataset.m1') }}
+        <span
+          :title="moveDialogTitle"
+          class="text-overflow"
+        >{{
+          moveDialogTitle
+        }}</span>
+        {{ $t('dataset.m2') }}
+      </template>
+      <group-move-selector
+        :item="groupForm"
+        @targetGroup="targetDs"
+      />
+      <div class="de-foot">
+        <deBtn
+          secondary
+          @click="closeMoveDs()"
+        >{{
+          $t('dataset.cancel')
+        }}</deBtn>
+        <deBtn
+          :disabled="dsMoveConfirmDisabled"
+          type="primary"
+          @click="saveMoveDs(tDs)"
+        >{{ $t('dataset.confirm') }}
+        </deBtn>
       </div>
-    </el-dialog>
+    </el-drawer>
+
+    <!-- 新增数据集文件夹 -->
+    <CreatDsGroup ref="CreatDsGroup" />
   </el-col>
 </template>
 
 <script>
-import { loadTable, getScene, addGroup, delGroup, addTable, delTable, post , isKettleRunning} from '@/api/dataset/dataset'
-import { authModel } from '@/api/system/sysAuth'
+import {
+  loadTable,
+  getScene,
+  addGroup,
+  delGroup,
+  delTable,
+  post,
+  isKettleRunning,
+  alter
+} from '@/api/dataset/dataset'
 import GroupMoveSelector from './GroupMoveSelector'
-import DsMoveSelector from './DsMoveSelector'
+import CreatDsGroup from './CreatDsGroup'
+import { queryAuthModel } from '@/api/authModel/authModel'
+import { engineMode } from '@/api/system/engine'
+import _ from 'lodash'
+import msgCfm from '@/components/msgCfm/index'
 
 export default {
   name: 'Group',
-  components: { GroupMoveSelector, DsMoveSelector },
+  components: { GroupMoveSelector, CreatDsGroup },
+  mixins: [msgCfm],
   props: {
     saveStatus: {
       type: Object,
       required: false,
       default: null
+    },
+    currentNodeId: {
+      type: String,
+      default: ''
     }
   },
   data() {
     return {
       sceneMode: false,
+      treeLoading: false,
       dialogTitle: '',
       search: '',
       editGroup: false,
@@ -391,14 +603,32 @@ export default {
       },
       groupFormRules: {
         name: [
-          { required: true, message: this.$t('commons.input_content'), trigger: 'change' },
-          { max: 50, message: this.$t('commons.char_can_not_more_50'), trigger: 'change' }
+          {
+            required: true,
+            message: this.$t('commons.input_content'),
+            trigger: 'change'
+          },
+          {
+            max: 50,
+            message: this.$t('commons.char_can_not_more_50'),
+            trigger: 'change'
+          },
+          { required: true, trigger: 'blur', validator: this.filedValidator }
         ]
       },
       tableFormRules: {
         name: [
-          { required: true, message: this.$t('commons.input_content'), trigger: 'change' },
-          { max: 50, message: this.$t('commons.char_can_not_more_50'), trigger: 'change' }
+          {
+            required: true,
+            message: this.$t('commons.input_content'),
+            trigger: 'change'
+          },
+          {
+            max: 50,
+            message: this.$t('commons.char_can_not_more_50'),
+            trigger: 'change'
+          },
+          { required: true, trigger: 'blur', validator: this.filedValidator }
         ]
       },
       moveGroup: false,
@@ -416,210 +646,258 @@ export default {
         parentId: 'pid'
       },
       isTreeSearch: false,
-      kettleRunning: false
+      kettleRunning: false,
+      engineMode: 'local',
+      searchPids: [], // 查询命中的pid
+      filterText: '',
+      fileList: [],
+      originName: '',
+      searchType: 'all',
+      searchMap: {
+        all: this.$t('commons.all'),
+        folder: this.$t('commons.folder')
+      }
     }
   },
   computed: {
-    // sceneData: function() {
-    //   // this.tableTree()
-    //   // console.log(this.$store.state.dataset.sceneData)
-    //   this.refreshNodeBy(this.currGroup.id)
-    //   return this.$store.state.dataset.sceneData
-    // }
+    hideCustomDs: function() {
+      return this.$store.getters.hideCustomDs
+    }
+  },
+  watch: {
+    saveStatus() {
+      this.treeNode()
+    },
+    filterText() {
+      this.loadTree()
+    },
+    searchType(val) {
+      this.searchPids = []
+      this.$refs.datasetTreeRef.filter(this.filterText)
+    }
   },
   created() {
     this.kettleState()
-  },
-  watch: {
-    search(val) {
-      // if (val && val !== '') {
-      //   this.tableData = JSON.parse(JSON.stringify(this.tables.filter(ele => { return ele.name.includes(val) })))
-      // } else {
-      //   this.tableData = JSON.parse(JSON.stringify(this.tables))
-      // }
-      this.$emit('switchComponent', { name: '' })
-      this.tData = []
-      this.expandedArray = []
-      if (this.timer) {
-        clearTimeout(this.timer)
-      }
-      this.timer = setTimeout(() => {
-        this.getTreeData(val)
-      }, (val && val !== '') ? 500 : 0)
-    },
-    saveStatus() {
-      this.refreshNodeBy(this.saveStatus.sceneId)
-    }
+    engineMode().then((res) => {
+      this.engineMode = res.data
+    })
   },
   mounted() {
-    this.treeNode(this.groupForm)
+    const { id, name } = this.$route.params
+    this.treeLoading = true
+    queryAuthModel({ modelType: 'dataset' }, true)
+      .then((res) => {
+        localStorage.setItem('dataset-tree', JSON.stringify(res.data))
+        this.tData = res.data || []
+        this.$nextTick(() => {
+          this.$refs.datasetTreeRef?.filter(this.filterText)
+          if (id && name.includes(this.filterText)) {
+            this.dfsTableData(this.tData, id)
+          } else {
+            const currentNodeId = sessionStorage.getItem('dataset-current-node')
+            if (currentNodeId) {
+              sessionStorage.setItem('dataset-current-node', '')
+              this.dfsTableData(this.tData, currentNodeId)
+            }
+          }
+        })
+      })
+      .finally(() => {
+        this.treeLoading = false
+      })
     this.refresh()
-    // this.tableTree()
+  },
+  beforeDestroy() {
+    sessionStorage.setItem('dataset-current-node', this.currentNodeId)
   },
   methods: {
-    clickAdd(param) {
-      // console.log(param);
-      this.add(param.type)
-      this.groupForm.pid = param.data.id
-      this.groupForm.level = param.data.level + 1
+    dfsTableData(arr, id) {
+      arr.some((ele) => {
+        if (ele.id === id) {
+          this.$refs.datasetTreeRef?.setCurrentNode(ele)
+          this.nodeClick(ele)
+          this.expandedArray.push(id)
+          return true
+        } else if (ele.children?.length) {
+          this.dfsTableData(ele.children, id)
+        }
+        return false
+      })
     },
-
-    beforeClickAdd(type, data, node) {
-      return {
-        'type': type,
-        'data': data,
-        'node': node
+    nameRepeat(value) {
+      if (!this.fileList || this.fileList.length === 0) {
+        return false
+      }
+      // 编辑场景 不能 因为名称重复而报错
+      if (
+        (this.groupForm.id || this.tableForm.id) &&
+        this.originName === value
+      ) {
+        return false
+      }
+      return this.fileList.some((role) => role === value)
+    },
+    filedValidator(rule, value, callback) {
+      if (this.nameRepeat(value)) {
+        callback(
+          new Error(
+            this.$t(
+              this.editGroup
+                ? 'deDataset.name_already_exists'
+                : 'deDataset.already_exists'
+            )
+          )
+        )
+      } else {
+        callback()
       }
     },
+    clickAdd(param) {
+      this.dialogTitle = this.$t('deDataset.new_folder')
+      if (!param || !param.id) {
+        this.fileList = (this.tData || []).map((ele) => ele.label)
+        this.add('group')
+        return
+      }
+      this.fileList = (param?.children || []).map((ele) => ele.label)
+      this.add(param.modelInnerType)
+      this.groupForm.pid = param.id
+      this.groupForm.level = param.level + 1
+    },
+    loadTree: _.debounce(function() {
+      this.searchPids = []
+      this.$refs.datasetTreeRef.filter(this.filterText)
+    }, 600),
     kettleState() {
-      isKettleRunning().then(res => {
+      isKettleRunning().then((res) => {
         this.kettleRunning = res.data
       })
     },
-    clickMore(param) {
-      // console.log(param)
-      switch (param.type) {
+    clickMore(type, data, node) {
+      switch (type) {
         case 'rename':
-          this.add(param.data.type)
-          this.groupForm = JSON.parse(JSON.stringify(param.data))
+          this.originName = data.label
+          this.dialogTitle = this.$t('编辑文件夹')
+          this.dfsTdata(this.tData, data.id)
+          this.add(data.modelInnerType)
+          this.groupForm = JSON.parse(JSON.stringify(data))
           break
         case 'move':
-          this.moveTo(param.data)
-          this.groupForm = JSON.parse(JSON.stringify(param.data))
+          this.moveTo(data)
+          this.groupForm = JSON.parse(JSON.stringify(data))
           break
         case 'moveDs':
-          this.moveToDs(param.data)
-          this.dsForm = JSON.parse(JSON.stringify(param.data))
+          this.moveToDs(data)
+          this.dsForm = JSON.parse(JSON.stringify(data))
           break
         case 'delete':
-          this.delete(param.data)
+          this.delete(data)
           break
         case 'editTable':
           this.editTable = true
-          this.tableForm = JSON.parse(JSON.stringify(param.data))
+          this.originName = data.label
+          this.dfsTdata(this.tData, data.id)
+          this.tableForm = JSON.parse(JSON.stringify(data))
           this.tableForm.mode = this.tableForm.mode + ''
           break
         case 'deleteTable':
-          this.deleteTable(param.data)
+          this.deleteTable(data)
           break
       }
     },
-
-    beforeClickMore(type, data, node) {
-      return {
-        'type': type,
-        'data': data,
-        'node': node
-      }
+    dfsTdata(arr, id) {
+      arr.some((ele) => {
+        if (ele.id === id) {
+          this.fileList = arr.map((item) => item.label)
+          return true
+        } else if (ele.children?.length) {
+          this.dfsTdata(ele.children, id)
+        }
+        return false
+      })
     },
-
     add(type) {
-      switch (type) {
-        case 'group':
-          this.dialogTitle = this.$t('dataset.group')
-          break
-        case 'scene':
-          this.dialogTitle = this.$t('dataset.scene')
-          break
-      }
       this.groupForm.type = type
       this.editGroup = true
     },
-
     saveGroup(group) {
-      // console.log(group);
       this.$refs['groupForm'].validate((valid) => {
         if (valid) {
-          addGroup(group).then(res => {
+          addGroup(group).then((res) => {
             this.close()
-            this.$message({
-              message: this.$t('dataset.save_success'),
-              type: 'success',
-              showClose: true
-            })
-            // this.tree(this.groupForm)
-            this.refreshNodeBy(group.pid)
+            this.openMessageSuccess('dataset.save_success')
+            this.expandedArray.push(group.pid)
+            this.treeNode()
           })
         } else {
-          // this.$message({
-          //   message: this.$t('commons.input_error'),
-          //   type: 'error',
-          //   showClose: true
-          // })
           return false
         }
       })
     },
 
     saveTable(table) {
-      //   console.log(table)
       table.mode = parseInt(table.mode)
+      const _this = this
       this.$refs['tableForm'].validate((valid) => {
         if (valid) {
           table.isRename = true
-          addTable(table).then(response => {
+          table.sceneId = table.pid
+          alter(table).then((response) => {
             this.closeTable()
-            this.$message({
-              message: this.$t('dataset.save_success'),
-              type: 'success',
-              showClose: true
-            })
-            // this.tableTree()
-            this.refreshNodeBy(table.sceneId)
-            // this.$router.push('/dataset/home')
-            // this.$emit('switchComponent', { name: 'ViewTable', param: table.id })
-            this.$store.dispatch('dataset/setTable', new Date().getTime())
+            this.openMessageSuccess('dataset.save_success')
+            _this.expandedArray.push(table.sceneId)
+            _this.$refs.datasetTreeRef.setCurrentKey(table.id)
+            _this.treeNode()
+            this.$emit('switchComponent', { name: '' })
           })
         } else {
-          // this.$message({
-          //   message: this.$t('commons.input_content'),
-          //   type: 'error',
-          //   showClose: true
-          // })
           return false
         }
       })
     },
 
     delete(data) {
-      this.$confirm(this.$t('dataset.confirm_delete'), this.$t('dataset.tips'), {
-        confirmButtonText: this.$t('dataset.confirm'),
-        cancelButtonText: this.$t('dataset.cancel'),
-        type: 'warning'
-      }).then(() => {
-        delGroup(data.id).then(response => {
-          this.$message({
-            type: 'success',
-            message: this.$t('dataset.delete_success'),
-            showClose: true
+      this.$confirm(
+        this.$t('dataset.confirm_delete'),
+        this.$t('dataset.tips'),
+        {
+          confirmButtonText: this.$t('dataset.confirm'),
+          cancelButtonText: this.$t('dataset.cancel'),
+          type: 'warning'
+        }
+      )
+        .then(() => {
+          delGroup(data.id).then((response) => {
+            this.openMessageSuccess('dataset.delete_success')
+            this.treeNode()
+            this.$emit('switchComponent', { name: '' })
           })
-          // this.tree(this.groupForm)
-          this.refreshNodeBy(data.pid)
         })
-      }).catch(() => {
-      })
+        .catch(() => {})
     },
 
     deleteTable(data) {
-      this.$confirm(this.$t('dataset.confirm_delete'), this.$t('dataset.tips'), {
-        confirmButtonText: this.$t('dataset.confirm'),
-        cancelButtonText: this.$t('dataset.cancel'),
-        type: 'warning'
-      }).then(() => {
-        delTable(data.id).then(response => {
-          this.$message({
-            type: 'success',
-            message: this.$t('dataset.delete_success'),
-            showClose: true
+      let confirm_delete_msg = ''
+      if (data.modelInnerType === 'union' || data.modelInnerType === 'custom') {
+        confirm_delete_msg = this.$t('dataset.confirm_delete')
+      } else {
+        confirm_delete_msg = this.$t('dataset.confirm_delete_msg')
+      }
+      const options = {
+        title: '确定删除该数据集吗？',
+        content: confirm_delete_msg,
+        type: 'primary',
+        confirmButtonText: this.$t('commons.confirm'),
+        cb: () => {
+          delTable(data.id).then((response) => {
+            this.openMessageSuccess('dataset.delete_success')
+            this.treeNode()
+            this.$emit('switchComponent', { name: '' })
+            this.$store.dispatch('dataset/setTable', new Date().getTime())
           })
-          // this.tableTree()
-          this.refreshNodeBy(data.sceneId)
-          // this.$router.push('/dataset/home')
-          // this.$emit('switchComponent', { name: '' })
-          this.$store.dispatch('dataset/setTable', new Date().getTime())
-        })
-      }).catch(() => {
-      })
+        }
+      }
+      this.handlerConfirm(options)
     },
 
     close() {
@@ -642,16 +920,26 @@ export default {
       }
     },
 
-    // tree(group) {
-    //   groupTree(group).then(res => {
-    //     this.tData = res.data
-    //   })
-    // },
-
-    treeNode(group) {
-      post('/dataset/group/treeNode', group).then(res => {
-        this.tData = res.data
-      })
+    treeNode(cache) {
+      const modelInfo = localStorage.getItem('dataset-tree')
+      const userCache = modelInfo && cache
+      if (userCache) {
+        this.tData = JSON.parse(modelInfo)
+      }
+      this.treeLoading = true
+      queryAuthModel({ modelType: 'dataset' }, !userCache)
+        .then((res) => {
+          localStorage.setItem('dataset-tree', JSON.stringify(res.data))
+          if (!userCache) {
+            this.tData = res.data || []
+          }
+          this.$nextTick(() => {
+            this.$refs.datasetTreeRef?.filter(this.filterText)
+          })
+        })
+        .finally(() => {
+          this.treeLoading = false
+        })
     },
 
     tableTree() {
@@ -661,7 +949,7 @@ export default {
         loadTable({
           sort: 'type asc,create_time desc,name asc',
           sceneId: this.currGroup.id
-        }).then(res => {
+        }).then((res) => {
           this.tables = res.data
           this.tableData = JSON.parse(JSON.stringify(this.tables))
         })
@@ -669,26 +957,9 @@ export default {
     },
 
     nodeClick(data, node) {
-      // console.log(data);
-      // console.log(node);
-      // if (data.type === 'scene') {
-      //   this.sceneMode = true
-      //   this.currGroup = data
-      //   this.$store.dispatch('dataset/setSceneData', this.currGroup.id)
-      // }
-
-      if (data.type !== 'group') {
+      if (data.modelInnerType !== 'group') {
         this.$emit('switchComponent', { name: 'ViewTable', param: data })
       }
-      // if (node.expanded) {
-      //   this.expandedArray.push(data.id)
-      // } else {
-      //   const index = this.expandedArray.indexOf(data.id)
-      //   if (index > -1) {
-      //     this.expandedArray.splice(index, 1)
-      //   }
-      // }
-      // console.log(this.expandedArray);
     },
 
     back() {
@@ -696,11 +967,18 @@ export default {
       this.$emit('switchComponent', { name: '' })
     },
 
-    clickAddData(param) {
-      // console.log(param);
-      this.currGroup = param.data
+    clickAddData(datasetType, param = {}) {
+      this.currGroup = param
+      if (datasetType === 'group') {
+        this.clickAdd(param)
+        return
+      }
       this.$store.dispatch('dataset/setSceneData', this.currGroup.id)
-      switch (param.type) {
+      if (!this.tData?.length) {
+        this.openMessageSuccess('deDataset.new_folder_first', 'error')
+        return
+      }
+      switch (datasetType) {
         case 'db':
           this.addData('AddDB')
           break
@@ -713,35 +991,40 @@ export default {
         case 'custom':
           this.addData('AddCustom')
           break
+        case 'union':
+          this.addData('AddUnion')
+          break
+        case 'api':
+          this.addData('AddApi')
+          break
       }
-    },
 
-    beforeClickAddData(type, data) {
-      return {
-        'type': type,
-        'data': data
+      if (!param.id) {
+        this.$refs.CreatDsGroup.init(datasetType)
+        return
       }
-    },
 
+      this.$router.push({
+        path: '/dataset-form',
+        query: {
+          datasetType,
+          sceneId: param.id
+        }
+      })
+    },
     addData(name) {
       this.$emit('switchComponent', { name: name, param: this.currGroup })
     },
-
-    sceneClick(data, node) {
-      this.$emit('switchComponent', { name: 'ViewTable', param: data.id })
-    },
-
     refresh() {
       const path = this.$route.path
       if (path === '/dataset/table') {
         this.sceneMode = true
         const sceneId = this.$store.state.dataset.sceneData
-        getScene(sceneId).then(res => {
+        getScene(sceneId).then((res) => {
           this.currGroup = res.data
         })
       }
     },
-
     nodeExpand(data) {
       if (data.id) {
         this.expandedArray.push(data.id)
@@ -755,7 +1038,7 @@ export default {
 
     moveTo(data) {
       this.moveGroup = true
-      this.moveDialogTitle = this.$t('dataset.m1') + (data.name.length > 10 ? (data.name.substr(0, 10) + '...') : data.name) + this.$t('dataset.m2')
+      this.moveDialogTitle = data.name
     },
     closeMoveGroup() {
       this.moveGroup = false
@@ -770,10 +1053,10 @@ export default {
     },
     saveMoveGroup() {
       this.groupForm.pid = this.tGroup.id
-      addGroup(this.groupForm).then(res => {
+      addGroup(this.groupForm).then((res) => {
+        this.openMessageSuccess('dept.move_success')
         this.closeMoveGroup()
-        // this.tree(this.groupForm)
-        this.refreshNodeBy(this.groupForm.pid)
+        this.treeNode()
       })
     },
     targetGroup(val) {
@@ -783,7 +1066,7 @@ export default {
 
     moveToDs(data) {
       this.moveDs = true
-      this.moveDialogTitle = this.$t('dataset.m1') + (data.name.length > 10 ? (data.name.substr(0, 10) + '...') : data.name) + this.$t('dataset.m2')
+      this.moveDialogTitle = data.name
     },
     closeMoveDs() {
       this.moveDs = false
@@ -797,15 +1080,14 @@ export default {
       }
     },
     saveMoveDs() {
-      // if (this.tDs && this.tDs.type === 'group') {
-      //   return
-      // }
-      this.dsForm.sceneId = this.tDs.id
+      const newSceneId = this.tDs.id
+      this.dsForm.sceneId = newSceneId
       this.dsForm.isRename = true
-      addTable(this.dsForm).then(res => {
+      alter(this.dsForm).then((res) => {
         this.closeMoveDs()
-        // this.tableTree()
-        this.refreshNodeBy(this.dsForm.sceneId)
+        this.expandedArray.push(newSceneId)
+        this.treeNode()
+        this.openMessageSuccess('移动成功')
       })
     },
     targetDs(val) {
@@ -826,7 +1108,7 @@ export default {
             post('/dataset/table/listAndGroup', {
               sort: 'type asc,name asc,create_time desc',
               sceneId: node.data.id
-            }).then(res => {
+            }).then((res) => {
               this.tables = res.data
               this.tableData = JSON.parse(JSON.stringify(this.tables))
               resolve(this.tableData)
@@ -838,173 +1120,194 @@ export default {
       }
     },
 
-    refreshNodeBy(id) {
-      if (this.isTreeSearch) {
-        this.tData = []
-        this.expandedArray = []
-        this.searchTree(this.search)
-      } else {
-        if (!id || id === '0') {
-          this.treeNode(this.groupForm)
-        } else {
-          const node = this.$refs.asyncTree.getNode(id) // 通过节点id找到对应树节点对象
-          node.loaded = false
-          node.expand() // 主动调用展开节点方法，重新查询该节点下的所有子节点
-        }
-      }
-    },
-
-    searchTree(val) {
-      const queryCondition = {
-        withExtend: 'parent',
-        modelType: 'dataset',
-        name: val
-      }
-      authModel(queryCondition).then(res => {
-        // this.highlights(res.data)
-        this.tData = this.buildTree(res.data)
-        // console.log(this.tData)
-      })
-    },
-
-    buildTree(arrs) {
-      const idMapping = arrs.reduce((acc, el, i) => {
-        acc[el[this.treeProps.id]] = i
-        return acc
-      }, {})
-      const roots = []
-      arrs.forEach(el => {
-        // 判断根节点 ###
-        el.type = el.modelInnerType
-        el.isLeaf = el.leaf
-        if (el[this.treeProps.parentId] === null || el[this.treeProps.parentId] === 0 || el[this.treeProps.parentId] === '0') {
-          roots.push(el)
-          return
-        }
-        // 用映射表找到父元素
-        const parentEl = arrs[idMapping[el[this.treeProps.parentId]]]
-        // 把当前元素添加到父元素的`children`数组中
-        parentEl.children = [...(parentEl.children || []), el]
-
-        // 设置展开节点 如果没有子节点则不进行展开
-        if (parentEl.children.length > 0) {
-          this.expandedArray.push(parentEl[this.treeProps.id])
-        }
-      })
-      return roots
-    },
-
-    // 高亮显示搜索内容
-    highlights(data) {
-      if (data && this.search && this.search.length > 0) {
-        const replaceReg = new RegExp(this.search, 'g')// 匹配关键字正则
-        const replaceString = '<span style="color: #0a7be0">' + this.search + '</span>' // 高亮替换v-html值
-        data.forEach(item => {
-          item.name = item.name.replace(replaceReg, replaceString) // 开始替换
-          item.label = item.label.replace(replaceReg, replaceString) // 开始替换
-        })
-      }
-    },
-
     getTreeData(val) {
       if (val) {
         this.isTreeSearch = true
         this.searchTree(val)
       } else {
         this.isTreeSearch = false
-        this.treeNode(this.groupForm)
+        this.treeNode()
       }
+    },
+    filterNode(value, data) {
+      if (!value) return true
+      if (this.searchType === 'folder') {
+        if (
+          data.modelInnerType === 'group' &&
+          data.label.indexOf(value) !== -1
+        ) {
+          this.searchPids.push(data.id)
+          return true
+        }
+        if (this.searchPids.indexOf(data.pid) !== -1) {
+          if (data.modelInnerType === 'group') {
+            this.searchPids.push(data.id)
+          }
+          return true
+        }
+      } else {
+        return data.label.indexOf(value) !== -1
+      }
+      return false
     }
   }
 }
 </script>
 
-<style scoped>
-  .el-divider--horizontal {
-    margin: 12px 0
-  }
+<style scoped lang="scss">
+.de-fill-block {
+  margin-left: 25px !important;
+}
 
-  .search-input {
-    padding: 12px 0;
-  }
-
-  .custom-tree-container{
-    margin-top: 10px;
-  }
-
-  .tree-list>>>.el-tree-node__expand-icon.is-leaf{
-    display: none;
-  }
-
-  .custom-tree-node {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+.custom-tree-container {
+  margin-top: 10px;
+  .no-tdata {
+    text-align: center;
+    margin-top: 80px;
+    font-family: PingFang SC;
     font-size: 14px;
-    padding-right:8px;
+    color: var(--deTextSecondary, #646a73);
+    font-weight: 400;
+    .no-tdata-new {
+      cursor: pointer;
+      color: var(--primary, #3370ff);
+    }
   }
+}
 
-  .custom-tree-node-list {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 14px;
-    padding:0 8px;
+.tree-list ::v-deep .el-tree-node__expand-icon.is-leaf {
+  display: none;
+}
+
+.custom-tree-node {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  padding-right: 8px;
+}
+
+.custom-tree-node-list {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  padding: 0 8px;
+}
+
+.custom-position {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  flex-flow: row nowrap;
+}
+
+.form-item {
+  margin-bottom: 0;
+}
+
+.title-css {
+  height: 26px;
+}
+
+.title-text {
+  line-height: 26px;
+}
+
+.scene-title {
+  width: 100%;
+  display: flex;
+}
+.scene-title-name {
+  width: 100%;
+  overflow: hidden;
+  display: inline-block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.father .child {
+  visibility: hidden;
+}
+.father:hover .child {
+  visibility: visible;
+}
+
+.inner-dropdown-menu {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+</style>
+<style lang="scss">
+.de-dataset-search {
+  padding: 10px 24px;
+  height: 100%;
+  overflow-y: auto;
+  .main-area-input {
+    .el-input-group__append {
+      width: 70px;
+      background: transparent;
+      .el-input__inner {
+        padding-left: 12px;
+      }
+    }
   }
-
-  .custom-position {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    font-size: 14px;
-    flex-flow: row nowrap;
-  }
-
-  .form-item {
-    margin-bottom: 0;
-  }
-
   .title-css {
-    height: 26px;
-  }
-
-  .title-text {
-    line-height: 26px;
-  }
-
-  .scene-title{
-    width: 100%;
-    display: flex;
-  }
-  .scene-title-name{
-    width: 100%;
-    overflow: hidden;
-    display: inline-block;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-  }
-  .father .child {
-    display: none;
-  }
-  .father:hover .child {
-    display: inline;
-  }
-
-  .dialog-css >>> .el-dialog__body {
-    padding: 10px 20px 20px;
-  }
-
-  .inner-dropdown-menu{
     display: flex;
     justify-content: space-between;
+  }
+  .el-icon-plus {
+    width: 28px;
+    height: 28px;
+    line-height: 28px;
+    text-align: center;
+    font-size: 17px;
+    color: #646a73;
+    cursor: pointer;
+
+    &:hover {
+      background: rgba(31, 35, 41, 0.1);
+      border-radius: 4px;
+    }
+
+    &:active {
+      background: rgba(31, 35, 41, 0.2);
+      border-radius: 4px;
+    }
+  }
+}
+.de-dataset-dropdown {
+  .el-dropdown-menu__item {
+    height: 40px;
+    color: var(--deTextPrimary, #1f2329);
+    display: flex;
     align-items: center;
-    width: 100%
+    padding: 12px 9px;
+    font-family: PingFang SC;
+    font-size: 14px;
+    font-weight: 400;
+    .svg-icon {
+      margin-right: 8.75px;
+      width: 16.5px;
+      height: 18px;
+    }
+
+    &:hover {
+      background: rgba(31, 35, 41, 0.1);
+      color: var(--deTextPrimary, #1f2329);
+    }
+
+    &.is-disabled {
+      background: #BBBFC4;
+      color: #fff;
+    }
   }
-  .tree-style {
-    padding: 10px 15px;
-    height: 100%;
-    overflow-y: auto;
+  .de-top-border {
+    border-top: 1px solid rgba(31, 35, 41, 0.15);
   }
+}
 </style>

@@ -13,9 +13,21 @@
         <div class="input-layout">
           <div class="input-main">
             <div class="div-input">
-              <el-form ref="pwdForm" :model="form" :rules="rule" size="small" @submit.native.prevent>
+              <el-form
+                ref="pwdForm"
+                :model="form"
+                :rules="rule"
+                size="small"
+                @submit.native.prevent
+              >
                 <el-form-item prop="password">
-                  <el-input v-model="form.password" maxlength="4" show-password class="real-input" :placeholder="$t('pblink.input_placeholder')" />
+                  <el-input
+                    v-model="form.password"
+                    maxlength="4"
+                    show-password
+                    class="real-input"
+                    :placeholder="$t('pblink.input_placeholder')"
+                  />
                 </el-form-item>
               </el-form>
             </div>
@@ -27,7 +39,11 @@
 
         <div class="auth-root-class">
           <span slot="footer">
-            <el-button size="mini" type="primary" @click="refresh">{{ $t('pblink.sure_bt') }}</el-button>
+            <el-button
+              size="mini"
+              type="primary"
+              @click="refresh"
+            >{{ $t('pblink.sure_bt') }}</el-button>
           </span>
         </div>
       </div>
@@ -38,12 +54,15 @@
 
 <script>
 import { validatePwd } from '@/api/link'
-import { encrypt } from '@/utils/rsaEncrypt'
 
 export default {
   name: 'LinkPwd',
   props: {
     resourceId: {
+      type: String,
+      default: null
+    },
+    user: {
       type: String,
       default: null
     }
@@ -57,7 +76,8 @@ export default {
           { required: true, message: this.$t('pblink.key_pwd'), trigger: 'blur' },
           {
             required: true,
-            pattern: /^\d{4}$/,
+            /* pattern: /^\d{4}$/, */
+            pattern: /^[a-zA-Z0-9]{4}$/,
             message: this.$t('pblink.pwd_format_error'),
             trigger: 'blur'
           }
@@ -86,17 +106,15 @@ export default {
     },
     // 验证密码是否正确 如果正确 设置请求头部带LINK-PWD-TOKEN=entrypt(pwd)再刷新页面
     refresh() {
+      this.msg = null
       this.$refs.pwdForm.validate(valid => {
         if (!valid) return false
-        const param = {
-          password: encrypt(this.form.password),
-          resourceId: this.resourceId
-        }
+        const param = this.user ? { password: this.form.password, resourceId: this.resourceId, user: this.user } : { password: this.form.password, resourceId: this.resourceId }
         validatePwd(param).then(res => {
           if (!res.data) {
-            this.msg = this.$t('pblink.pwd_error')
+            this.msg = this.$t('system_parameter_setting.password_input_error')
           } else {
-            window.location.reload()
+            this.$emit('fresh-token')
           }
         })
       })
@@ -195,11 +213,6 @@ export default {
         border: 1px solid #e8eaed;
         display: block;
     }
-    // .div-input {
-    //     inset: 2px 4px;
-    // position: absolute;
-    // display: block;
-    // }
     .abs-input {
         height: 20px;
     position: relative;
@@ -219,18 +232,6 @@ export default {
     color: #E65251;
     box-sizing: border-box;
     }
-    // .real-input {
-    //     width: 100%;
-    //     height: 100%;
-    //     border: none;
-    //     outline: none;
-    //     padding: 0px;
-    //     margin: 0px;
-    //     inset: 0px;
-    //     position: absolute;
-    //     display: block;
-
-    // }
     .auth-root-class {
         margin: 15px 0px 5px;
         text-align: center;

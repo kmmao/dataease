@@ -7,10 +7,14 @@ import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.type.TypeAliasRegistry;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Controller;
 import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.RequestMapping;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,6 +38,8 @@ public class ModuleClassLoader extends URLClassLoader {
 
     //需要注册的spring bean的name集合
     private List<String> registeredBean = new ArrayList<>();
+
+    private List<String> registeredController = new ArrayList<>();
 
 
     //构造
@@ -98,9 +104,6 @@ public class ModuleClassLoader extends URLClassLoader {
                     byte[] classBytes = baos.toByteArray();
                     classBytesMap.put(className,classBytes);
                 }
-                /*if (name.endsWith(".xml")) {
-                    loadMapperXml(name);
-                }*/
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -150,8 +153,12 @@ public class ModuleClassLoader extends URLClassLoader {
                 beanName = StringUtils.uncapitalize(beanName);
 
                 SpringContextUtil.getBeanFactory().registerBeanDefinition(beanName,beanDefinition);
+
+                if (isHandler(cla)) {
+                    registeredController.add(beanName);
+                }
+
                 registeredBean.add(beanName);
-//                System.out.println("注册bean:"+beanName);
             }
 
         }
@@ -162,6 +169,10 @@ public class ModuleClassLoader extends URLClassLoader {
     //在移除当前类加载器的时候需要手动删除这些注册的bean
     public List<String> getRegisteredBean() {
         return registeredBean;
+    }
+
+    public List<String> getRegisteredController() {
+        return registeredController;
     }
 
 
@@ -184,6 +195,9 @@ public class ModuleClassLoader extends URLClassLoader {
         if( Modifier.isAbstract(cla.getModifiers())){
             return false;
         }
+        if (isHandler(cla)) {
+            return true;
+        }
 
         if(cla.getAnnotation(Component.class)!=null){
             return true;
@@ -194,8 +208,15 @@ public class ModuleClassLoader extends URLClassLoader {
         if(cla.getAnnotation(Service.class)!=null){
             return true;
         }
+        if(cla.getAnnotation(Service.class)!=null){
+            return true;
+        }
 
         return false;
+    }
+
+    protected boolean isHandler(Class<?> beanType) {
+        return AnnotatedElementUtils.hasAnnotation(beanType, Controller.class) || AnnotatedElementUtils.hasAnnotation(beanType, RequestMapping.class);
     }
 
 }

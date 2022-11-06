@@ -1,7 +1,7 @@
 package io.dataease.controller.sys;
 
 
-import io.dataease.base.domain.SysMenu;
+import io.dataease.plugins.common.base.domain.SysMenu;
 import io.dataease.commons.utils.BeanUtils;
 
 import io.dataease.controller.handler.annotation.I18n;
@@ -15,11 +15,13 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import springfox.documentation.annotations.ApiIgnore;
+
 import javax.annotation.Resource;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
+@ApiIgnore
 @RestController
 @RequiredArgsConstructor
 @Api(tags = "系统：菜单管理")
@@ -76,8 +78,8 @@ public class SysMenuController {
 
     @PostMapping("/childMenus/{pid}")
     public Set<Long> childMenus(@PathVariable Long pid){
-        List<MenuNodeResponse> childs = menuService.childs(pid);
-        Set<Long> sets = childs.stream().map(MenuNodeResponse::getMenuId).collect(Collectors.toSet());
+        List<MenuNodeResponse> children = menuService.children(pid);
+        Set<Long> sets = children.stream().map(MenuNodeResponse::getMenuId).collect(Collectors.toSet());
         sets.add(pid);
         return sets;
     }

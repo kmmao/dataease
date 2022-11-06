@@ -1,101 +1,169 @@
 <template>
-  <div class="top-nav" :style="{'background-color': '#f1f3f8'}">
-    <div v-loading="!axiosFinished" class="log">
-      <!--      <img      v-if="!logoUrl" src="@/assets/DataEase-color.png" width="140" alt="" style="padding-top: 10px;">-->
-      <svg-icon v-if="!logoUrl && axiosFinished" icon-class="DataEase" custom-class="top-nav-logo-icon" />
-      <img v-if="logoUrl && axiosFinished" :src="logoUrl" width="140" alt="" style="padding-top: 10px;">
+  <div class="top-nav">
+    <div
+      v-loading="!axiosFinished"
+      class="log"
+    >
+      <svg-icon
+        v-if="!logoUrl && axiosFinished"
+        icon-class="DataEase"
+        custom-class="top-nav-logo-icon"
+      />
+      <img
+        v-if="logoUrl && axiosFinished"
+        :src="logoUrl"
+        width="140"
+        alt=""
+        style="padding-top: 10px;"
+      >
     </div>
     <el-menu
-      :active-text-color="variables.topMenuActiveText"
-      :default-active="activeMenu"
+      class="de-top-menu"
       mode="horizontal"
-      :style="{'background-color': '#f1f3f8', 'margin-left': '260px', 'position': 'absolute'}"
+      :style="{'margin-left': '260px', 'position': 'absolute'}"
+      active-text-color="#FFFFFF"
+      :default-active="activeMenu"
       @select="handleSelect"
     >
-      <div v-for="item in permission_routes" :key="item.path" class="nav-item">
+      <div
+        v-for="item in permission_routes"
+        :key="item.path"
+        class="nav-item"
+      >
         <app-link :to="resolvePath(item)">
           <el-menu-item
             v-if="!item.hidden"
             :index="item.path"
-          >{{ item.meta ? item.meta.title : item.children[0].meta.title }}</el-menu-item>
+          >
+            {{ item.meta ? item.meta.title : item.children[0].meta.title }}</el-menu-item>
         </app-link>
       </div>
     </el-menu>
 
-    <div class="right-menu">
-      <template>
-        <!--        <el-tooltip content="项目文档" effect="dark" placement="bottom">-->
-        <!--          <doc class="right-menu-item hover-effect" />-->
-        <!--        </el-tooltip>-->
+    <div
+      class="right-menu"
+      style="color: var(--TopTextColor)"
+    >
+      <notification class="right-menu-item hover-effect" />
+      <lang-select class="right-menu-item hover-effect" />
+      <div
+        style="height: 100%;padding: 0 8px;"
+        class="right-menu-item hover-effect"
+      >
+        <a
+          :href="helpLink"
+          target="_blank"
+          style="display: flex;height: 100%;width: 100%;justify-content: center;align-items: center;"
+        >
+          <svg-icon icon-class="docs" />
+        </a>
+      </div>
 
-        <!--        <el-tooltip content="全屏缩放" effect="dark" placement="bottom">-->
-        <!--          <screenfull id="screenfull" class="right-menu-item hover-effect" />-->
-        <!--        </el-tooltip>-->
-
-        <!-- <el-tooltip :content="$t('navbar.size')" effect="dark" placement="bottom">
-          <size-select id="size-select" class="right-menu-item hover-effect" />
-        </el-tooltip> -->
-        <notification class="right-menu-item hover-effect" />
-        <lang-select class="right-menu-item hover-effect" />
-        <div style="height: 100%;padding: 0 8px;" class="right-menu-item hover-effect">
-          <a href="https://dataease.io/docs/" target="_blank" style="display: flex;height: 100%;width: 100%;justify-content: center;align-items: center;">
-            <svg-icon icon-class="docs" />
-          </a>
+      <el-dropdown
+        ref="my-drop"
+        class="top-dropdown"
+        style="display: flex;align-items: center; width:100px;"
+        trigger="click"
+      >
+        <div
+          class="el-dropdown-link"
+          style="display: flex;color: var(--TopTextColor);font-size: 14px; width:100%;"
+        >
+          <span style="max-width:80px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;">{{ name }}</span>
+          <span><i class="el-icon-arrow-down el-icon--right" /></span>
         </div>
-      </template>
-
-      <el-dropdown class="top-dropdown" style="display: flex;align-items: center; width:100px;">
-        <span class="el-dropdown-link" style="font-size: 14px;max-width: 80px;overflow: hidden;text-overflow: ellipsis;white-space: nowrap;">
-          {{ name }}
-          <i class="el-icon-arrow-down el-icon--right" />
-        </span>
         <el-dropdown-menu slot="dropdown">
           <router-link to="/person-info/index">
             <el-dropdown-item>{{ $t('commons.personal_info') }}</el-dropdown-item>
           </router-link>
+
+          <router-link
+            v-if="$store.getters.validate"
+            to="/ukey/index"
+          >
+            <el-dropdown-item>{{ $t('commons.ukey_title') }}</el-dropdown-item>
+          </router-link>
+
           <router-link to="/person-pwd/index">
             <el-dropdown-item>{{ $t('user.change_password') }}</el-dropdown-item>
           </router-link>
-          <!--          <a href="https://de-docs.fit2cloud.com/" target="_blank">-->
-          <!--            <el-dropdown-item>{{ $t('commons.help_documentation') }} </el-dropdown-item>-->
-          <!--          </a>-->
+
           <router-link to="/about/index">
             <el-dropdown-item>{{ $t('commons.about_us') }}</el-dropdown-item>
           </router-link>
-          <el-dropdown-item divided @click.native="logout">
+          <el-dropdown-item
+            divided
+            @click.native="logout"
+          >
             <span style="display:block;">{{ $t('commons.exit_system') }}</span>
           </el-dropdown-item>
         </el-dropdown-menu>
       </el-dropdown>
     </div>
+
+    <!--模板市场全屏显示框-->
+    <el-dialog
+      :visible="templateMarketShow"
+      :show-close="false"
+      class="dialog-css"
+      :fullscreen="true"
+      append-to-body
+    >
+      <template-market
+        v-if="templateMarketShow"
+        style="text-align: center"
+        @closeDialog="changeTemplateMarketShow(false)"
+      />
+    </el-dialog>
   </div>
+
 </template>
 
 <script>
-import { mapGetters } from 'vuex'
+import {
+  mapGetters
+} from 'vuex'
 import AppLink from './Sidebar/Link'
 import variables from '@/styles/variables.scss'
-import { isExternal } from '@/utils/validate'
+import {
+  isExternal
+} from '@/utils/validate'
 import Notification from '@/components/Notification'
-// import Screenfull from '@/components/Screenfull'
-// import SizeSelect from '@/components/SizeSelect'
+import bus from '@/utils/bus'
 import LangSelect from '@/components/LangSelect'
-import { getSysUI } from '@/utils/auth'
+import {
+  getSysUI
+} from '@/utils/auth'
+import {
+  pluginLoaded
+} from '@/api/user'
+import {
+  initTheme
+} from '@/utils/ThemeUtil'
+import TemplateMarket from '@/views/panel/templateMarket'
+import { changeFavicon } from '@/utils/index'
 export default {
   name: 'Topbar',
   components: {
+    TemplateMarket,
     AppLink,
-    // Screenfull,
-    // SizeSelect,
     Notification,
     LangSelect
-    // Doc
+
+  },
+  props: {
+    showTips: {
+      type: Boolean,
+      default: false
+    }
   },
   data() {
     return {
       uiInfo: null,
       logoUrl: null,
-      axiosFinished: false
+      axiosFinished: false,
+      isPluginLoaded: false,
+      templateMarketShow: false
     }
   },
 
@@ -103,9 +171,50 @@ export default {
     theme() {
       return this.$store.state.settings.theme
     },
+
+    topMenuColor() {
+      if (this.$store.getters.uiInfo && this.$store.getters.uiInfo['ui.topMenuColor'] && this.$store.getters.uiInfo[
+        'ui.topMenuColor'].paramValue) {
+        return this.$store.getters.uiInfo['ui.topMenuColor'].paramValue
+      }
+      return this.variables.topBarBg
+    },
+    topMenuActiveColor() {
+      if (this.$store.getters.uiInfo && this.$store.getters.uiInfo['ui.topMenuActiveColor'] && this.$store.getters
+        .uiInfo['ui.topMenuActiveColor'].paramValue) {
+        return this.$store.getters.uiInfo['ui.topMenuActiveColor'].paramValue
+      }
+      return this.variables.topBarMenuActive
+    },
+    topMenuTextColor() {
+      if (this.$store.getters.uiInfo && this.$store.getters.uiInfo['ui.topMenuTextColor'] && this.$store.getters
+        .uiInfo['ui.topMenuTextColor'].paramValue) {
+        return this.$store.getters.uiInfo['ui.topMenuTextColor'].paramValue
+      }
+      return this.variables.topBarMenuText
+    },
+    topMenuTextActiveColor() {
+      if (this.$store.getters.uiInfo && this.$store.getters.uiInfo['ui.topMenuTextActiveColor'] && this.$store.getters
+        .uiInfo['ui.topMenuTextActiveColor'].paramValue) {
+        return this.$store.getters.uiInfo['ui.topMenuTextActiveColor'].paramValue
+      }
+      return this.variables.topBarMenuTextActive
+    },
+    helpLink() {
+      if (this.$store.getters.uiInfo && this.$store.getters.uiInfo['ui.helpLink'] && this.$store.getters.uiInfo['ui.helpLink'].paramValue) {
+        return this.$store.getters.uiInfo['ui.helpLink'].paramValue
+      }
+      return 'https://dataease.io/docs/'
+    },
+    /* topMenuColor() {
+        return this.$store.getters.uiInfo.topMenuColor
+      }, */
     activeMenu() {
       const route = this.$route
-      const { meta, path } = route
+      const {
+        meta,
+        path
+      } = route
       // if set path, the sidebar will highlight the path you set
       if (meta.activeMenu) {
         // return meta.activeMenu
@@ -133,20 +242,40 @@ export default {
 
   mounted() {
     this.initCurrentRoutes()
+    bus.$on('set-top-menu-info', this.setTopMenuInfo)
+    bus.$on('set-top-menu-active-info', this.setTopMenuActiveInfo)
+    bus.$on('set-top-text-info', this.setTopTextInfo)
+    bus.$on('set-top-text-active-info', this.setTopTextActiveInfo)
+    bus.$on('sys-logout', this.logout)
+    this.showTips && this.$nextTick(() => {
+      const drop = this.$refs['my-drop']
+      drop && drop.show && drop.show()
+    })
+  },
+  beforeDestroy() {
+    bus.$off('set-top-menu-info', this.setTopMenuInfo)
+    bus.$off('set-top-menu-active-info', this.setTopMenuActiveInfo)
+    bus.$off('set-top-text-info', this.setTopTextInfo)
+    bus.$off('set-top-text-active-info', this.setTopTextActiveInfo)
+    bus.$off('sys-logout', this.logout)
   },
   created() {
-    this.$store.dispatch('user/getUI').then(() => {
-      this.uiInfo = getSysUI()
-      if (this.uiInfo['ui.logo'] && this.uiInfo['ui.logo'].paramValue) {
-        this.logoUrl = '/system/ui/image/' + this.uiInfo['ui.logo'].paramValue
+    this.loadUiInfo()
+  },
+  beforeCreate() {
+    pluginLoaded().then(res => {
+      this.isPluginLoaded = res.success && res.data
+      if (this.isPluginLoaded) {
+        initTheme()
       }
-      this.axiosFinished = true
     })
   },
   methods: {
     // 通过当前路径找到二级菜单对应项，存到store，用来渲染左侧菜单
     initCurrentRoutes() {
-      const { path } = this.$route
+      const {
+        path
+      } = this.$route
       let route = this.permission_routes.find(
         item => item.path === '/' + path.split('/')[1]
       )
@@ -178,9 +307,9 @@ export default {
       // 如果有子项，默认跳转第一个子项路由
       let path = ''
       /**
-       * item 路由子项
-       * parent 路由父项
-       */
+         * item 路由子项
+         * parent 路由父项
+         */
       const getDefaultPath = (item, parent) => {
         // 如果path是个外部链接（不建议），直接返回链接，存在个问题：如果是外部链接点击跳转后当前页内容还是上一个路由内容
         if (isExternal(item.path)) {
@@ -214,7 +343,12 @@ export default {
     },
     // 设置侧边栏的显示和隐藏
     setSidebarHide(route) {
-    //   if (!route.children || route.children.length === 1) {
+      const hidePaths = ['/person-info', '/person-pwd', '/about']
+      if (hidePaths.includes(route.path)) {
+        this.$store.dispatch('app/toggleSideBarHide', true)
+        return
+      }
+      //   if (!route.children || route.children.length === 1) {
       if (route.name !== 'system' && (!route.children || this.showChildLength(route) === 1)) {
         this.$store.dispatch('app/toggleSideBarHide', true)
       } else {
@@ -228,19 +362,66 @@ export default {
       }
       return route.children.filter(kid => !kid.hidden).length
     },
-    async logout() {
-      await this.$store.dispatch('user/logout')
-      this.$router.push(`/login?redirect=${this.$route.fullPath}`)
+    async logout(param) {
+      const result = await this.$store.dispatch('user/logout', param)
+      if (result !== 'success' && result !== 'fail') {
+        window.location.href = result
+      } else {
+        this.$router.push('/login')
+      }
+    },
+    loadUiInfo() {
+      this.$store.dispatch('user/getUI').then((res) => {
+        this.uiInfo = getSysUI()
+        if (!this.uiInfo || Object.keys(this.uiInfo).length === 0) {
+          this.uiInfo = res
+        }
+        if (this.uiInfo['ui.logo'] && this.uiInfo['ui.logo'].paramValue) {
+          this.logoUrl = '/system/ui/image/' + this.uiInfo['ui.logo'].paramValue
+        }
+        if (this.uiInfo['ui.theme'] && this.uiInfo['ui.theme'].paramValue) {
+          const val = this.uiInfo['ui.theme'].paramValue
+          this.$store.dispatch('settings/changeSetting', {
+            key: 'theme',
+            value: val
+          })
+        }
+
+        if (this.uiInfo['ui.favicon'] && this.uiInfo['ui.favicon'].paramValue) {
+          const faviconUrl = '/system/ui/image/' + this.uiInfo['ui.favicon'].paramValue
+          changeFavicon(faviconUrl)
+        }
+
+        this.axiosFinished = true
+      })
+    },
+
+    setTopMenuInfo(val) {
+      this.loadUiInfo()
+    },
+    setTopMenuActiveInfo(val) {
+      this.loadUiInfo()
+    },
+    setTopTextInfo(val) {
+      this.loadUiInfo()
+    },
+    setTopTextActiveInfo(val) {
+      this.loadUiInfo()
+    },
+    changeTemplateMarketShow(isShow) {
+      this.templateMarketShow = isShow
     }
 
   }
 }
+
 </script>
 <style lang="scss" scoped>
   .el-dropdown-link {
     cursor: pointer;
     color: #1e212a;
   }
+
   .el-icon-arrow-down {
     font-size: 12px;
   }
@@ -254,4 +435,20 @@ export default {
     vertical-align: text-bottom;
     margin-right: 10px;
   }
+
+  .de-top-menu {
+    background-color: var(--MainBG);
+
+  }
+  .template-market-item{
+    display: flex;
+    color: var(--MenuActiveBG, #409EFF);
+    font-size: 14px!important;
+    line-height: 38px!important;
+  }
+
+  .dialog-css ::v-deep .el-dialog__header{
+    display: none;
+  }
+
 </style>

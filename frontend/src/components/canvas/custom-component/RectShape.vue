@@ -1,13 +1,15 @@
 <template>
   <div class="rect-shape">
-    <v-text :prop-value="element.propValue" :element="element" />
+    <v-text
+      :prop-value="element.propValue"
+      :element="element"
+    />
   </div>
 </template>
 
 <script>
 export default {
   props: {
-    // eslint-disable-next-line vue/require-default-prop
     element: {
       type: Object
     }

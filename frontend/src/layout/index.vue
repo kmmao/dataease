@@ -1,25 +1,56 @@
 <template>
-  <div :class="classObj" class="app-wrapper">
+  <div
+    :class="classObj"
+    class="app-wrapper"
+  >
     <licbar />
-    <topbar />
+    <topbar
+      v-if="!fullHeightFlag && finishLoad"
+      :show-tips="showTips"
+    />
 
-    <de-container style="padding-top: 56px;">
-      <de-aside-container v-if="!sidebar.hide" class="le-aside-container">
-        <sidebar class="sidebar-container" />
+    <de-container :style="mainStyle">
+      <de-aside-container
+        v-if="!sidebar.hide"
+        :is-collapse-width="sideWidth"
+        type="system"
+        class="le-aside-container"
+      >
+        <sidebar
+          class="sidebar-container"
+          @changeSideWidth="(side) => sideWidth = side"
+        />
       </de-aside-container>
 
-      <de-main-container class="la-main-container">
+      <de-main-container
+        class="la-main-container"
+        :class="{'full-height':fullHeightFlag}"
+      >
         <app-main />
       </de-main-container>
     </de-container>
+    <div
+      v-if="showTips"
+      class="pwd-tips"
+    >
+      <span>{{ $t('commons.first_login_tips') }}</span>
+      <div style="text-align: right; margin-bottom: 10px;">
+        <el-button
+          size="mini"
+          :disabled="buttonDisable"
+          style="padding-right: 65px;"
+          type="text"
+          @click="doNotNoti"
+        >{{ $t('commons.donot_noti') }}</el-button>
+        <el-button
+          type="primary"
+          size="mini"
+          @click="showTips = false"
+        >{{ $t('commons.roger_that') }}</el-button>
+      </div>
+      <div class="arrow" />
+    </div>
 
-    <!-- <de-main-container>
-      <app-main />
-    </de-main-container> -->
-
-    <!-- <div :class="{sidebarHide: sidebar.hide}" class="main-container">
-      <app-main />
-    </div> -->
   </div>
 </template>
 
@@ -29,6 +60,10 @@ import ResizeMixin from './mixin/ResizeHandler'
 import DeMainContainer from '@/components/dataease/DeMainContainer'
 import DeContainer from '@/components/dataease/DeContainer'
 import DeAsideContainer from '@/components/dataease/DeAsideContainer'
+import bus from '@/utils/bus'
+
+import { needModifyPwd, removePwdTips } from '@/api/user'
+
 export default {
   name: 'Layout',
   components: {
@@ -41,6 +76,15 @@ export default {
     DeAsideContainer
   },
   mixins: [ResizeMixin],
+  data() {
+    return {
+      componentName: 'PanelMain',
+      showTips: false,
+      finishLoad: false,
+      buttonDisable: false,
+      sideWidth: ''
+    }
+  },
   computed: {
     sidebar() {
       return this.$store.state.app.sidebar
@@ -54,6 +98,20 @@ export default {
     showSettings() {
       return this.$store.state.settings.showSettings
     },
+    fullHeightFlag() {
+      return this.$route.path.indexOf('panel') > -1 && (this.componentName === 'PanelEdit' || this.componentName === 'ChartEdit')
+    },
+    mainStyle() {
+      if (this.fullHeightFlag) {
+        return {
+          'height': '100vh!important'
+        }
+      } else {
+        return {
+          'paddingTop': '56px'
+        }
+      }
+    },
     classObj() {
       return {
         // hideSidebar: !this.sidebar.opened,
@@ -63,9 +121,35 @@ export default {
       }
     }
   },
+  beforeCreate() {
+    needModifyPwd().then(res => {
+      this.showTips = res.success && res.data
+      this.finishLoad = true
+    }).catch(e => {
+      this.finishLoad = true
+    })
+  },
+  mounted() {
+    bus.$on('PanelSwitchComponent', this.panelSwitchComponent)
+  },
+  beforeDestroy() {
+    bus.$off('PanelSwitchComponent', this.panelSwitchComponent)
+  },
   methods: {
+    panelSwitchComponent(c) {
+      this.componentName = c.name
+    },
     handleClickOutside() {
       this.$store.dispatch('app/closeSideBar', { withoutAnimation: false })
+    },
+    doNotNoti() {
+      this.buttonDisable = true
+      removePwdTips().then(res => {
+        this.showTips = false
+        this.buttonDisable = false
+      }).catch(e => {
+        this.buttonDisable = false
+      })
     }
   }
 }
@@ -76,10 +160,13 @@ export default {
   @import "~@/styles/variables.scss";
 
   .app-wrapper {
+    min-width: 1000px!important;
+    min-height: 600px!important;
     @include clearfix;
     position: relative;
     height: 100%;
     // height: $contentHeight;
+    background-color: var(--ContentBG);
     width: 100%;
     &.mobile.openSidebar{
       position: fixed;
@@ -118,11 +205,45 @@ export default {
   }
   .le-aside-container {
       .sidebar-container {
-        width: 100% !important;
-        position: initial !important;
-        height: calc(100vh - 80px) !important;
-        overflow-x: hidden !important;
-        overflow-y: auto !important;
+        width: 100%;
+        position: relative !important;
+        height: 100%;
+        top: 0 !important;
+        background-color: var(--SiderBG) !important;
       }
+      overflow: hidden;
   }
+  .full-height {
+    height: 100vh !important;
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+
+  }
+  .pwd-tips {
+    position: absolute;
+    box-shadow: 0 0 0 1000em rgb(0, 0, 0, 0.3);
+    height: 100px;
+    width: 225px;
+    top: 105px;
+    right: 115px;
+    z-index: 9999;
+    border-radius: 4px;
+    padding: 15px;
+    background: #fff;
+  }
+  .arrow{
+    border-bottom: 7px solid #fff;
+    border-right: 7px solid #b5b5b7;
+    border-left: 7px solid #b5b5b7;
+    border-top: 7px solid #b5b5b7;
+    width: 0px;
+    height: 0px;
+    position: relative;
+    top:-60px;
+    left:210px;
+    transform: rotate(90deg);
+}
+
 </style>

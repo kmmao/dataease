@@ -1,16 +1,16 @@
 <template>
   <component
     :is="mode"
+    :ref="refId"
+    :obj="obj"
     v-bind="$attrs"
     v-on="$listeners"
   />
 </template>
 
 <script>
-// import Axios from 'axios'
-
+import { uuid } from 'vue-uuid'
 import { get } from '@/api/system/dynamic'
-
 export default {
   name: 'AsyncComponent',
   inheritAttrs: true,
@@ -19,12 +19,17 @@ export default {
     url: {
       type: String,
       default: ''
+    },
+    obj: {
+      type: Object,
+      default: () => {}
     }
   },
   data() {
     return {
       resData: '',
-      mode: ''
+      mode: '',
+      refId: null
     }
   },
   watch: {
@@ -39,19 +44,31 @@ export default {
         let res
         if (!window.SyncComponentCache[this.url]) {
           window.SyncComponentCache[this.url] = get(this.url)
-
           // window.SyncComponentCache[this.url] = Axios.get(this.url)
           res = await window.SyncComponentCache[this.url]
         } else {
           res = await window.SyncComponentCache[this.url]
         }
-        const Fn = Function
-        this.mode = new Fn(`return ${res.data || res}`)()
+        if (res) {
+          const Fn = Function
+          const dynamicCode = res.data || res
+          const component = new Fn(`return ${dynamicCode}`)()
+          this.mode = component.default || component
+        }
       }
     }
   },
+  created() {
+    this.refId = uuid.v1
+  },
   methods: {
-
+    /* chartResize() {
+      this.$refs[this.refId] && this.$refs[this.refId].chartResize && this.$refs[this.refId].chartResize()
+    }, */
+    callPluginInner(param) {
+      const { methodName, methodParam } = param
+      return this.$refs[this.refId] && this.$refs[this.refId][methodName] && this.$refs[this.refId][methodName](methodParam)
+    }
   }
 }
 </script>

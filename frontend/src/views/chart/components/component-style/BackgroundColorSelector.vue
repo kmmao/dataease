@@ -1,40 +1,55 @@
 <template>
   <div style="width: 100%">
     <el-col>
-      <el-form ref="colorForm" :model="colorForm" label-width="80px" size="mini" :disabled="param && !hasDataPermission('manage',param.privileges)">
-        <el-form-item :label="$t('chart.color')" class="form-item">
-          <el-color-picker v-model="colorForm.color" class="color-picker-style" @change="changeBackgroundStyle" />
+      <el-form
+        ref="colorForm"
+        :model="colorForm"
+        label-width="80px"
+        size="mini"
+      >
+        <el-form-item
+          :label="$t('chart.color')"
+          class="form-item"
+        >
+          <el-color-picker
+            v-model="colorForm.color"
+            class="color-picker-style"
+            :predefine="predefineColors"
+            @change="changeBackgroundStyle"
+          />
         </el-form-item>
-        <el-form-item :label="$t('chart.not_alpha')" class="form-item form-item-slider">
-          <el-slider v-model="colorForm.alpha" show-input :show-input-controls="false" input-size="mini" @change="changeBackgroundStyle" />
+        <el-form-item
+          :label="$t('chart.not_alpha')"
+          class="form-item form-item-slider"
+        >
+          <el-slider
+            v-model="colorForm.alpha"
+            show-input
+            :show-input-controls="false"
+            input-size="mini"
+            @change="changeBackgroundStyle"
+          />
+        </el-form-item>
+
+        <el-form-item
+          :label="$t('chart.border_radius')"
+          class="form-item form-item-slider"
+        >
+          <el-slider
+            v-model="colorForm.borderRadius"
+            show-input
+            :show-input-controls="false"
+            input-size="mini"
+            @change="changeBackgroundStyle"
+          />
         </el-form-item>
       </el-form>
     </el-col>
-    <!--    <div style="width: 100%">-->
-    <!--      <el-popover-->
-    <!--        placement="right"-->
-    <!--        width="400"-->
-    <!--        trigger="click"-->
-    <!--      >-->
-    <!--        <el-col>-->
-    <!--          <el-form ref="colorForm" :model="colorForm" label-width="80px" size="mini">-->
-    <!--            <el-form-item :label="$t('chart.color')" class="form-item">-->
-    <!--              <colorPicker v-model="colorForm.color" style="margin-top: 6px;cursor: pointer;z-index: 1004;border: solid 1px black" @change="changeBackgroundStyle" />-->
-    <!--            </el-form-item>-->
-    <!--            <el-form-item :label="$t('chart.not_alpha')" class="form-item form-item-slider">-->
-    <!--              <el-slider v-model="colorForm.alpha" show-input :show-input-controls="false" input-size="mini" @change="changeBackgroundStyle" />-->
-    <!--            </el-form-item>-->
-    <!--          </el-form>-->
-    <!--        </el-col>-->
-
-    <!--        <el-button slot="reference" :disabled="param && !hasDataPermission('manage',param.privileges)" size="mini" class="shape-item">{{ $t('chart.background') }}<i class="el-icon-setting el-icon&#45;&#45;right" /></el-button>-->
-    <!--      </el-popover>-->
-    <!--    </div>-->
   </div>
 </template>
 
 <script>
-import { DEFAULT_BACKGROUND_COLOR } from '../../chart/chart'
+import { COLOR_PANEL, DEFAULT_BACKGROUND_COLOR } from '../../chart/chart'
 
 export default {
   name: 'BackgroundColorSelector',
@@ -50,7 +65,8 @@ export default {
   },
   data() {
     return {
-      colorForm: JSON.parse(JSON.stringify(DEFAULT_BACKGROUND_COLOR))
+      colorForm: JSON.parse(JSON.stringify(DEFAULT_BACKGROUND_COLOR)),
+      predefineColors: COLOR_PANEL
     }
   },
   watch: {
@@ -94,11 +110,11 @@ export default {
   justify-content: space-between;
   align-items: center;
 }
-.form-item-slider>>>.el-form-item__label{
+.form-item-slider ::v-deep .el-form-item__label{
   font-size: 12px;
   line-height: 38px;
 }
-.form-item>>>.el-form-item__label{
+.form-item ::v-deep .el-form-item__label{
   font-size: 12px;
 }
 .el-select-dropdown__item{

@@ -6,13 +6,19 @@
     <div class="fu-operator-component__operator">
       <el-select
         v-model="value"
+        :disabled="disabled"
         class="search-operator"
         :placeholder="$t('fu.search_bar.please_select')"
         :size="configSize"
         @change="change"
         @input="change"
       >
-        <el-option v-for="o in operators" :key="o.value" :label="$t(o.label)" :value="o.value" />
+        <el-option
+          v-for="o in operators"
+          :key="o.value"
+          :label="$t(o.label)"
+          :value="o.value"
+        />
       </el-select>
     </div>
     <div class="fu-operator-component__value">
@@ -35,7 +41,11 @@ export default {
     // eslint-disable-next-line vue/require-default-prop
     operator: String,
     // eslint-disable-next-line vue/require-default-prop
-    operators: Array
+    operators: Array,
+    disabled: {
+      type: Boolean,
+      default: false
+    }
   },
   data() {
     return {

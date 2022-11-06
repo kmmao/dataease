@@ -1,16 +1,35 @@
 <template>
   <div v-if="!item.hidden">
     <template v-if="hasOneShowingChild(item.children,item) && (!onlyOneChild.children||onlyOneChild.noShowingChildren)&&!item.alwaysShow">
-      <app-link v-if="onlyOneChild.meta" :to="resolvePath(onlyOneChild.path)">
-        <el-menu-item :index="resolvePath(onlyOneChild.path)" :class="{'submenu-title-noDropdown':!isNest}">
-          <item :icon="onlyOneChild.meta.icon||(item.meta&&item.meta.icon)" :title="onlyOneChild.meta.title" />
+      <app-link
+        v-if="onlyOneChild.meta"
+        :to="resolvePath(onlyOneChild.path)"
+      >
+        <el-menu-item
+          :index="resolvePath(onlyOneChild.path)"
+          :class="{'submenu-title-noDropdown':!isNest}"
+        >
+          <item
+            :icon="!isNest&&(onlyOneChild.meta.icon||(item.meta&&item.meta.icon))"
+            :title="onlyOneChild.meta.title"
+          />
         </el-menu-item>
       </app-link>
     </template>
 
-    <el-submenu v-else ref="subMenu" :index="resolvePath(item.path)" popper-append-to-body>
+    <el-submenu
+      v-else
+      ref="subMenu"
+      :class="[{ 'submenu-is-collapse': isCollapse }]"
+      :index="resolvePath(item.path)"
+      popper-append-to-body
+    >
       <template slot="title">
-        <item v-if="item.meta" :icon="item.meta && item.meta.icon" :title="item.meta.title" />
+        <item
+          v-if="item.meta"
+          :icon="item.meta && item.meta.icon"
+          :title="item.meta.title"
+        />
       </template>
       <sidebar-item
         v-for="child in item.children"
@@ -45,14 +64,16 @@ export default {
       type: Boolean,
       default: false
     },
+    isCollapse: {
+      type: Boolean,
+      default: false
+    },
     basePath: {
       type: String,
       default: ''
     }
   },
   data() {
-    // To fix https://github.com/PanJiaChen/vue-admin-template/issues/237
-    // TODO: refactor with render function
     this.onlyOneChild = null
     return {}
   },
@@ -96,3 +117,17 @@ export default {
   }
 }
 </script>
+<style lang="scss">
+.submenu-is-collapse {
+  .el-submenu__title {
+    text-align: center;
+    .svg-icon {
+      margin-right: 8px !important;
+    }
+    span,
+    i {
+      display: none;
+    }
+  }
+}
+</style>

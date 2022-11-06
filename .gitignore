@@ -40,6 +40,7 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Editor directories and files
+.lh
 .idea
 .vscode
 *.suo
@@ -51,6 +52,7 @@ pnpm-debug.log*
 *.classpath
 *.project
 .settings/
+.lh
 
 
 package-lock.json

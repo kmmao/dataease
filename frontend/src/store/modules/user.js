@@ -1,4 +1,4 @@
-import { login, logout, getInfo, getUIinfo, languageApi } from '@/api/user'
+import { login, logout, deLogout, getInfo, getUIinfo, languageApi } from '@/api/user'
 import { getToken, setToken, removeToken, setSysUI } from '@/utils/auth'
 import { resetRouter } from '@/router'
 import { format } from '@/utils/formatUi'
@@ -6,6 +6,7 @@ import { getLanguage } from '@/lang/index'
 import Cookies from 'js-cookie'
 import router from '@/router'
 import i18n from '@/lang'
+import { $alert, $confirm } from '@/utils/message'
 const getDefaultState = () => {
   return {
     token: getToken(),
@@ -18,7 +19,8 @@ const getDefaultState = () => {
     // 当前用户拥有哪些资源权限
     permissions: [],
     language: getLanguage(),
-    uiInfo: null
+    uiInfo: null,
+    linkToken: null
   }
 }
 
@@ -30,6 +32,9 @@ const mutations = {
   },
   SET_TOKEN: (state, token) => {
     state.token = token
+  },
+  SET_LINK_TOKEN: (state, linkToken) => {
+    state.linkToken = linkToken
   },
   SET_NAME: (state, name) => {
     state.name = name
@@ -67,9 +72,9 @@ const mutations = {
 const actions = {
   // user login
   login({ commit }, userInfo) {
-    const { username, password } = userInfo
+    const { username, password, loginType } = userInfo
     return new Promise((resolve, reject) => {
-      login({ username: username.trim(), password: password }).then(response => {
+      login({ username: username.trim(), password: password, loginType: loginType }).then(response => {
         const { data } = response
         commit('SET_TOKEN', data.token)
         commit('SET_LOGIN_MSG', null)
@@ -94,6 +99,7 @@ const actions = {
         if (!data) {
           reject('Verification failed, please Login again.')
         }
+        localStorage.setItem('userId', data.userId)
         const currentUser = data
         commit('SET_USER', currentUser)
 
@@ -131,15 +137,38 @@ const actions = {
   },
 
   // user logout
-  logout({ commit, state }) {
+  logout({ commit, state }, param) {
+    const method = param && param.casEnable ? deLogout : logout
     return new Promise((resolve, reject) => {
-      logout(state.token).then(() => {
+      method(state.token).then(res => {
         removeToken() // must remove  token  first
         resetRouter()
         commit('RESET_STATE')
-        resolve()
+        resolve(res.data)
       }).catch(error => {
         reject(error)
+        if (error?.response?.data?.message) {
+          if (error.response.data.message === ('oidc_logout_error')) {
+            const message = i18n.t('logout.' + error.response.data.message)
+            $confirm(message, () => {
+              removeToken() // must remove  token  first
+              resetRouter()
+              commit('RESET_STATE')
+              window.location.href = '/'
+            }, {
+              confirmButtonText: i18n.t('commons.confirm')
+            })
+          }
+          if (error.response.data.message === ('cas_logout_error')) {
+            const message = i18n.t('logout.' + error.response.data.message)
+            $alert(message, () => {
+
+            }, {
+              confirmButtonText: i18n.t('commons.confirm'),
+              showClose: false
+            })
+          }
+        }
       })
     })
   },
@@ -165,6 +194,9 @@ const actions = {
       commit('SET_LANGUAGE', language)
       router.go(0)
     })
+  },
+  setLinkToken({ commit }, linkToken) {
+    commit('SET_LINK_TOKEN', linkToken)
   }
 }
 

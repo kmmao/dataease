@@ -13,15 +13,22 @@ const dialogPanel = {
       multiple: false,
       placeholder: 'detextgridselect.placeholder',
       viewIds: [],
-      datas: [],
+      parameters: [],
+      data: [],
       key: 'id',
       label: 'text',
-      value: 'id'
+      value: 'id',
+      fieldId: '',
+      dragItems: [],
+      sort: {}
     },
-    value: ''
+    value: '',
+    manualModify: false
   },
   defaultClass: 'text-filter',
-  component: 'de-select-grid'
+  component: 'de-select-grid',
+  miniSizex: 1,
+  miniSizey: 1
 }
 const drawPanel = {
   type: 'custom',
@@ -67,14 +74,37 @@ class TextSelectGridServiceImpl extends WidgetService {
     })
   }
 
-  optionDatas(datas) {
-    if (!datas) return null
-    return datas.filter(item => !!item).map(item => {
+  optionData(data) {
+    if (!data) return null
+    return data.filter(item => !!item).map(item => {
       return {
         id: item,
         text: item
       }
     })
+  }
+  getParam(element) {
+    const value = this.fillValueDerfault(element)
+    const param = {
+      component: element,
+      value: !value ? [] : Array.isArray(value) ? value : value.toString().split(','),
+      operator: element.options.attrs.multiple ? 'in' : 'eq'
+    }
+    return param
+  }
+
+  isSortWidget() {
+    return true
+  }
+  fillValueDerfault(element) {
+    const defaultV = element.options.value === null ? '' : element.options.value.toString()
+    if (element.options.attrs.multiple) {
+      if (defaultV === null || typeof defaultV === 'undefined' || defaultV === '' || defaultV === '[object Object]') return []
+      return defaultV.split(',')
+    } else {
+      if (defaultV === null || typeof defaultV === 'undefined' || defaultV === '' || defaultV === '[object Object]') return null
+      return defaultV.split(',')[0]
+    }
   }
 }
 const textSelectGridServiceImpl = new TextSelectGridServiceImpl()

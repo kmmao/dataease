@@ -30,7 +30,7 @@ public class PluginUtils {
         if (f2CLicenseResponse.getStatus() != F2CLicenseResponse.Status.valid)
             return new ArrayList<>();
         Map<String, PluginMenuService> pluginMenuServiceMap = SpringContextUtil.getApplicationContext().getBeansOfType(PluginMenuService.class);
-        List<PluginSysMenu> menus = pluginMenuServiceMap.values().stream().flatMap(item -> item.menus().stream()).collect(Collectors.toList());
+        List<PluginSysMenu> menus = pluginMenuServiceMap.values().stream().flatMap(item -> item.menus().stream()).distinct().collect(Collectors.toList());
         return menus;
     }
 
@@ -44,6 +44,16 @@ public class PluginUtils {
         }
         F2CLicenseResponse f2CLicenseResponse = defaultLicenseService.validateLicense();
         return f2CLicenseResponse;
+    }
+
+    public static Boolean licValid() {
+        try{
+            F2CLicenseResponse f2CLicenseResponse = PluginUtils.currentLic();
+            if (f2CLicenseResponse.getStatus() != F2CLicenseResponse.Status.valid) return false;
+        }catch (Exception e) {
+            return false;
+        }
+        return true;
     }
 
 

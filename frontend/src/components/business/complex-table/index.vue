@@ -1,30 +1,51 @@
 
 <template>
   <div class="complex-table">
-    <div v-if="$slots.header || header" class="complex-table__header">
+    <div
+      v-if="$slots.header || header"
+      class="complex-table__header"
+    >
       <slot name="header">{{ header }}</slot>
     </div>
 
-    <div v-if="$slots.toolbar || searchConfig" class="complex-table__toolbar">
+    <div
+      v-if="$slots.toolbar || searchConfig"
+      class="complex-table__toolbar"
+    >
       <div>
         <slot name="toolbar" />
       </div>
-      <fu-search-bar v-bind="searchConfig"  @exec="search" ref="search">
+      <fu-search-bar
+        ref="search"
+        v-bind="searchConfig"
+        @exec="search"
+      >
         <template #complex>
           <slot name="complex" />
         </template>
         <slot name="buttons" />
-        <fu-table-column-select v-if="!hideColumns" :columns="columns" />
+        <fu-table-column-select
+          v-if="!hideColumns"
+          :columns="columns"
+        />
       </fu-search-bar>
     </div>
 
     <div class="complex-table__body">
-      <fu-table v-bind="$attrs" :columns="columns" :local-key="localKey" v-on="$listeners">
+      <fu-table
+        v-bind="$attrs"
+        :columns="columns"
+        :local-key="localKey"
+        v-on="$listeners"
+      >
         <slot />
       </fu-table>
     </div>
 
-    <div v-if="$slots.pagination || paginationConfig" class="complex-table__pagination">
+    <div
+      v-if="$slots.pagination || paginationConfig"
+      class="complex-table__pagination"
+    >
       <slot name="pagination">
         <fu-table-pagination
           :current-page.sync="paginationConfig.currentPage"
@@ -65,7 +86,7 @@ export default {
   },
   data() {
     return {
-      condition: {},
+      condition: {}
     }
   },
   mounted() {
@@ -86,7 +107,6 @@ export default {
 
 <style lang="scss">
 @import "~@/styles/mixin.scss";
-@import "~@/styles/variables.scss";
 .complex-table {
   .complex-table__header {
     @include flex-row(flex-start, center);

@@ -1,13 +1,44 @@
 <template>
   <el-col>
-    <el-button icon="el-icon-plus" circle size="mini" style="margin-bottom: 10px;" @click="addFilter" />
+    <div style="display: inline-block;">
+      <el-button
+        icon="el-icon-plus"
+        circle
+        size="mini"
+        style="margin-bottom: 10px;"
+        @click="addFilter"
+      />
+      <el-radio-group
+        v-show="item.filter && item.filter.length > 1"
+        v-model="logic"
+        size="mini"
+        style="margin-left: 10px;"
+        @change="logicChange"
+      >
+        <el-radio-button label="and">{{ $t('chart.and') }}</el-radio-button>
+        <el-radio-button label="or">{{ $t('chart.or') }}</el-radio-button>
+      </el-radio-group>
+    </div>
+
     <div style="max-height: 50vh;overflow-y: auto;">
-      <el-row v-for="(f,index) in item.filter" :key="index" class="filter-item">
+      <el-row
+        v-for="(f,index) in item.filter"
+        :key="index"
+        class="filter-item"
+      >
         <el-col :span="4">
-          <span>{{ item.name }} ({{ $t('chart.'+item.summary) }})</span>
+          <span>
+            {{ item.name }}
+            <span v-show="item.summary && item.summary !== ''">
+              ({{ $t('chart.'+item.summary) }})
+            </span>
+          </span>
         </el-col>
         <el-col :span="8">
-          <el-select v-model="f.term" size="mini">
+          <el-select
+            v-model="f.term"
+            size="mini"
+          >
             <el-option-group
               v-for="(group,idx) in options"
               :key="idx"
@@ -23,10 +54,23 @@
           </el-select>
         </el-col>
         <el-col :span="6">
-          <el-input v-show="!f.term.includes('null')" v-model="f.value" class="value-item" :placeholder="$t('chart.condition')" size="mini" clearable />
+          <el-input
+            v-show="!f.term.includes('null')"
+            v-model="f.value"
+            class="value-item"
+            :placeholder="$t('chart.condition')"
+            size="mini"
+            clearable
+          />
         </el-col>
         <el-col :span="6">
-          <el-button type="text" icon="el-icon-delete" circle style="float: right" @click="removeFilter(index)" />
+          <el-button
+            type="text"
+            icon="el-icon-delete"
+            circle
+            style="float: right"
+            @click="removeFilter(index)"
+          />
         </el-col>
       </el-row>
     </div>
@@ -54,16 +98,6 @@ export default {
           label: this.$t('chart.filter_not_eq')
         }]
       },
-      // {
-      //   label: '',
-      //   options: [{
-      //     value: 'like',
-      //     label: this.$t('chart.filter_like')
-      //   }, {
-      //     value: 'not like',
-      //     label: this.$t('chart.filter_not_like')
-      //   }]
-      // },
       {
         label: '',
         options: [{
@@ -83,22 +117,17 @@ export default {
           value: 'ge',
           label: this.$t('chart.filter_ge')
         }]
-      },
-      {
-        label: '',
-        options: [{
-          value: 'null',
-          label: this.$t('chart.filter_null')
-        }, {
-          value: 'not_null',
-          label: this.$t('chart.filter_not_null')
-        }]
-      }]
+      }],
+      logic: ''
     }
   },
   mounted() {
+    this.init()
   },
   methods: {
+    init() {
+      this.logic = this.item.logic
+    },
     addFilter() {
       this.item.filter.push({
         term: 'eq',
@@ -107,6 +136,9 @@ export default {
     },
     removeFilter(index) {
       this.item.filter.splice(index, 1)
+    },
+    logicChange(val) {
+      this.item.logic = val
     }
   }
 }
@@ -123,14 +155,14 @@ export default {
   justify-content: left;
   align-items: center;
 }
-.form-item>>>.el-form-item__label{
+.form-item ::v-deep .el-form-item__label{
   font-size: 12px;
 }
   span{
     font-size: 12px;
   }
 
-  .value-item>>>.el-input{
+  .value-item ::v-deep .el-input{
     position: relative;
     display: inline-block;
     width: 80px!important;

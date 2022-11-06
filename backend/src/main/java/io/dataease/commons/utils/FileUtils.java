@@ -1,34 +1,26 @@
 package io.dataease.commons.utils;
 
-import io.dataease.commons.exception.DEException;
-import io.dataease.i18n.Translator;
-import org.apache.commons.collections4.CollectionUtils;
-import org.aspectj.util.FileUtil;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.lang.NonNull;
+import org.springframework.util.Assert;
 
-import java.io.*;
-import java.util.List;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
+/**
+ * Author: wangjiahao
+ * Date: 2022/4/24
+ * Description:
+ */
 public class FileUtils {
-    private static final String BODY_FILE_DIR = "/opt/metersphere/data/body";
 
-    public static void createBodyFiles(List<String> bodyUploadIds, List<MultipartFile> bodyFiles) {
-        if (CollectionUtils.isNotEmpty(bodyUploadIds) && CollectionUtils.isNotEmpty(bodyFiles)) {
-            File testDir = new File(BODY_FILE_DIR);
-            if (!testDir.exists()) {
-                testDir.mkdirs();
-            }
-            for (int i = 0; i < bodyUploadIds.size(); i++) {
-                MultipartFile item = bodyFiles.get(i);
-                File file = new File(BODY_FILE_DIR + "/" + bodyUploadIds.get(i) + "_" + item.getOriginalFilename());
-                try (InputStream in = item.getInputStream(); OutputStream out = new FileOutputStream(file)) {
-                    file.createNewFile();
-                    FileUtil.copyStream(in, out);
-                } catch (IOException e) {
-                    LogUtil.error(e);
-                    DEException.throwException(Translator.get("upload_fail"));
-                }
-            }
+    public static void createIfAbsent(@NonNull Path path) throws IOException {
+        Assert.notNull(path, "Path must not be null");
+
+        if (Files.notExists(path)) {
+            // Create directories
+            Files.createDirectories(path);
+            LogUtil.debug("Created directory: [{}]", path);
         }
     }
 }

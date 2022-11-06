@@ -1,8 +1,15 @@
 <template>
   <div style="width: 100%;display: flex;justify-content: center;">
     <el-card class="box-card about-card">
-      <div slot="header" class="clearfix license-header">
-        <img src="@/assets/DataEase-white.png" alt="" width="300">
+      <div
+        slot="header"
+        class="clearfix license-header"
+      >
+        <img
+          src="@/assets/DataEase-white.png"
+          alt=""
+          width="300"
+        >
       </div>
       <div class="license-content">
         <div v-if="license.status === 'Fail'">{{ $t('about.invalid_license') }}</div>
@@ -15,7 +22,10 @@
             <tr>
               <th>{{ $t('about.expiration_time') }}</th>
               <td>
-                <label v-if="license.status === 'expired'" style="color: red">{{ license.expired }} {{ $t('about.expirationed') }}</label>
+                <label
+                  v-if="license.status === 'expired'"
+                  style="color: red"
+                >{{ license.expired }} {{ $t('about.expirationed') }}</label>
                 <label v-if="license.status === 'valid'">{{ license.expired }}</label>
               </td>
             </tr>
@@ -42,7 +52,12 @@
         </div>
 
         <div class="md-padding" />
-        <div v-if="user.isAdmin" layout="row" layout-align="space-between center" class="lic_rooter">
+        <div
+          v-if="user.isAdmin"
+          layout="row"
+          layout-align="space-between center"
+          class="lic_rooter"
+        >
           <el-upload
             action=""
             :multiple="false"
@@ -56,7 +71,10 @@
 
           </el-upload>
 
-          <a class="md-primary pointer" @click="support">{{ $t('about.suport') }}</a>
+          <a
+            class="md-primary pointer"
+            @click="support"
+          >{{ $t('about.support') }}</a>
 
         </div>
       </div>
@@ -104,7 +122,6 @@ export default {
     getLicenseInfo() {
     //   validate({}).then(res => {
     //     this.license = this.getLicense(res.data)
-    //     console.log(this.license)
     //   })
       this.validateHandler({}, res => {
         this.license = this.getLicense(res.data)
@@ -150,7 +167,6 @@ export default {
       window.open(url, '_blank')
     },
     beforeUpload(file) {
-      // console.log(file)
       this.importLic(file)
       return false
     }
@@ -168,7 +184,7 @@ export default {
         min-width: 640px;
         height: 400px;
         position: relative;
-        >>>div.el-card__header {
+        ::v-deep div.el-card__header {
             padding: 0;
         }
     }
@@ -183,14 +199,14 @@ export default {
     .license-content {
         font-size: 16px;
         padding: 50px;
-        >>>table {
+        ::v-deep table {
             width: 100%;
         }
-        >>>th {
+        ::v-deep th {
             text-align: left;
             width: 45%;
         }
-        >>>td {
+        ::v-deep td {
             display: table-cell;
             vertical-align: inherit;
         }
@@ -207,7 +223,7 @@ export default {
         max-width: 100%;
         justify-content: space-between;
 
-        >>>a{
+        ::v-deep a{
             color: rgb(10,123,224);
             cursor: pointer;
         }

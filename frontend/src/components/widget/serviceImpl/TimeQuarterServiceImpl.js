@@ -13,6 +13,7 @@ const dialogPanel = {
     },
     value: ''
   },
+  parameters: [],
   defaultClass: 'time-filter',
   component: 'de-quarter'
 }
@@ -28,7 +29,9 @@ const drawPanel = {
     textAlign: '',
     color: ''
   },
-  component: 'de-quarter'
+  component: 'de-quarter',
+  miniSizex: 1,
+  miniSizey: 1
 }
 
 class TimeQuarterServiceImpl extends WidgetService {
@@ -42,7 +45,6 @@ class TimeQuarterServiceImpl extends WidgetService {
   initLeftPanel() {
     const value = JSON.parse(JSON.stringify(leftPanel))
     return value
-    // console.log('this is first initWidget')
   }
 
   initFilterDialog() {

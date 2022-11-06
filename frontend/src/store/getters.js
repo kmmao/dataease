@@ -4,6 +4,7 @@ const getters = {
   size: state => state.app.size,
   device: state => state.app.device,
   token: state => state.user.token,
+  linkToken: state => state.user.linkToken,
   avatar: state => state.user.avatar,
   name: state => state.user.name,
   introduction: state => state.user.introduction,
@@ -15,6 +16,8 @@ const getters = {
   errorLogs: state => state.errorLog.logs,
   sceneData: state => state.dataset.sceneData,
   table: state => state.dataset.table,
+  chartTable: state => state.chart.table,
+  hideCustomDs: state => state.dataset.hideCustomDs,
   loadingMap: state => state.request.loadingMap,
   currentPath: state => state.permission.currentPath,
   permissions: state => state.user.permissions,
@@ -27,6 +30,7 @@ const getters = {
   uiInfo: state => state.user.uiInfo,
   conditions: state => state.conditions.conditions,
   msgTypes: state => state.msg.msgTypes,
-  geoMap: state => state.map.geoMap
+  geoMap: state => state.map.geoMap,
+  panelViews: state => state.task.panelViews
 }
 export default getters

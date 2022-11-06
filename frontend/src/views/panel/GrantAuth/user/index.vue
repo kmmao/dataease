@@ -2,11 +2,12 @@
   <div class="my_table">
     <el-table
       ref="table"
-      :data="data.filter(node => !keyWord || node[fieldName].toLowerCase().includes(keyWord.toLowerCase()))"
+      :data="tableData"
       :show-header="true"
       style="width: 100%"
       :row-style="{height: '35px'}"
-      @filter-change="filterChange"
+      @select="selectOne"
+      @select-all="selectAll"
     >
       <el-table-column
         :column-key="fieldName"
@@ -17,15 +18,19 @@
         :filter-multiple="false"
         :filter-method="filterHandler"
       />
-      <el-table-column type="selection" fixd />
+      <el-table-column
+        type="selection"
+        fixd
+      />
     </el-table>
   </div>
 </template>
 
 <script>
-import { userLists } from '@/api/system/user'
+import { userListsWithOutPage } from '@/api/system/user'
 import { formatCondition } from '@/utils/index'
-import { saveShare, loadShares } from '@/api/panel/share'
+import { loadShares } from '@/api/panel/share'
+/* import { saveShare, loadShares } from '@/api/panel/share' */
 export default {
   name: 'GrantUser',
   props: {
@@ -46,7 +51,14 @@ export default {
       filter_options: [{ text: this.$t('panel.unshared_people'), value: 0 }, { text: this.$t('panel.shared_people'), value: 1 }],
       fieldName: 'nickName',
       type: 0, // 类型0代表用户
-      shares: []
+      shares: [],
+      tableData: []
+    }
+  },
+  watch: {
+    'keyWord': function(val) {
+      this.tableData = this.data.filter(node => !val || node[this.fieldName].toLowerCase().includes(val.toLowerCase()))
+      this.setCheckNodes()
     }
   },
   created() {
@@ -60,52 +72,25 @@ export default {
     search(condition) {
       const temp = formatCondition(condition)
       const param = temp || {}
-      userLists(1, 0, param).then(response => {
+      userListsWithOutPage(param).then(response => {
         const data = response.data
-        // this.total = data.itemCount
-        this.data = data.listObject.filter(ele => ele.id !== this.$store.getters.user.userId)
+        this.data = data.filter(ele => ele.id !== this.$store.getters.user.userId)
+        this.tableData = data.filter(ele => ele.id !== this.$store.getters.user.userId)
         this.queryShareNodeIds()
       })
     },
     filterHandler(value, row, column) {
-      // const property = column['property']
-      // return row[property] === value
       const userId = row['userId']
       return !(value ^ this.shares.includes(userId))
     },
 
-    filterChange(obj) {
-      const arr = obj[this.fieldName]
-      if (arr.length === 0) {
-        this.initColumnLabel()
-      } else {
-        this.columnLabel = this.filter_options[arr[0]].text
-      }
-      this.$nextTick(() => {
-        this.setCheckNodes()
-      })
-    },
-
     getSelected() {
       return {
-        userIds: this.$refs.table.store.states.selection.map(item => item.userId)
+        userIds: this.shares
       }
-    },
-
-    save(msg) {
-      const rows = this.$refs.table.store.states.selection
-      const request = this.buildRequest(rows)
-      saveShare(request).then(response => {
-        this.$success(msg)
-        return true
-      }).catch(err => {
-        this.$error(err.message)
-        return false
-      })
     },
 
     cancel() {
-      console.log('user cancel')
     },
     buildRequest(rows) {
       const targetIds = rows.map(row => row.userId)
@@ -118,9 +103,7 @@ export default {
     },
 
     queryShareNodeIds(callBack) {
-      const conditionResourceId = { field: 'panel_group_id', operator: 'eq', value: this.resourceId }
-      const conditionType = { field: 'type', operator: 'eq', value: this.type }
-      const param = { conditions: [conditionResourceId, conditionType] }
+      const param = { resourceId: this.resourceId, type: this.type }
       loadShares(param).then(res => {
         const shares = res.data
         const nodeIds = shares.map(share => share.targetId)
@@ -133,10 +116,38 @@ export default {
     },
 
     setCheckNodes() {
-      this.data.forEach(node => {
-        const nodeId = node.userId
-        this.shares.includes(nodeId) && this.$refs.table.toggleRowSelection(node, true)
+      this.$nextTick(() => {
+        this.$refs.table.store.states.data.forEach(node => {
+          const nodeId = node.userId
+          this.shares.includes(nodeId) && this.$refs.table.toggleRowSelection(node, true)
+        })
       })
+    },
+    selectOne(selection, row) {
+      if (selection.some(node => node.userId === row.userId)) {
+        // 如果选中了 且 已有分享数据不包含当前节点则添加
+        if (!this.shares.includes(row.userId)) {
+          this.shares.push(row.userId)
+        }
+      } else {
+        // 如果取消选中 则移除
+        this.shares = this.shares.filter(nodeId => row.userId !== nodeId)
+      }
+    },
+    selectAll(selection) {
+      // 1.全选
+      if (selection && selection.length > 0) {
+        selection.forEach(node => {
+          if (!this.shares.includes(node.userId)) {
+            this.shares.push(node.userId)
+          }
+        })
+      } else {
+        // 2.全部取消
+        const currentNodes = this.$refs.table.store.states.data
+        const currentNodeIds = currentNodes.map(node => node.userId)
+        this.shares = this.shares.filter(nodeId => !currentNodeIds.includes(nodeId))
+      }
     }
 
   }
@@ -145,20 +156,20 @@ export default {
 
 <style scoped>
 
-.my_table >>> .el-table__row>td{
+.my_table ::v-deep .el-table__row>td{
   /* 去除表格线 */
   border: none;
   padding: 0 0;
 }
-.my_table >>> .el-table th.is-leaf {
+.my_table ::v-deep .el-table th.is-leaf {
   /* 去除上边框 */
     border: none;
 }
-.my_table >>> .el-table::before{
+.my_table ::v-deep .el-table::before{
   /* 去除下边框 */
   height: 0;
 }
-.my_table>>>.el-table-column--selection .cell{
+.my_table ::v-deep .el-table-column--selection .cell{
   text-align: center;
 }
 </style>

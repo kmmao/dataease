@@ -1,6 +1,5 @@
 import defaultSettings from '@/settings'
 import variables from '@/styles/variables.scss'
-// const { showSettings, fixedHeader, sidebarLogo } = defaultSettings
 const { showSettings, sidebarLogo } = defaultSettings
 const state = {
   theme: variables.theme,
@@ -11,7 +10,7 @@ const state = {
 
 const mutations = {
   CHANGE_SETTING: (state, { key, value }) => {
-    if (state.hasOwnProperty(key)) {
+    if (Object.prototype.hasOwnProperty.call(state, key)) {
       state[key] = value
     }
   }

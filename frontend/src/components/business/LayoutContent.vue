@@ -1,12 +1,23 @@
 <template>
   <div class="content-container">
-    <div v-if="$slots.header || header" class="content-container__header">
+    <div
+      v-if="$slots.header || header"
+      class="content-container__header"
+    >
       <slot name="header">
-        <back-button v-if="showBack" :path="backPath" :name="backName" :to="backTo" />
+        <back-button
+          v-if="showBack"
+          :path="backPath"
+          :name="backName"
+          :to="backTo"
+        />
         {{ header }}
       </slot>
     </div>
-    <div v-if="$slots.toolbar" class="content-container__toolbar">
+    <div
+      v-if="$slots.toolbar"
+      class="content-container__toolbar"
+    >
       <slot name="toolbar" />
     </div>
     <slot />
@@ -39,12 +50,10 @@ export default {
 
 <style lang="scss">
 @import "~@/styles/mixin.scss";
-@import "~@/styles/variables.scss";
 
 .content-container {
   transition: 0.3s;
-  color: $--color-text-primary;
-  background-color: #FFFFFF;
+  background-color: var(--ContentBG);
   overflow: auto;
   height: 100%;
   padding: 20px;

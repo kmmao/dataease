@@ -1,11 +1,36 @@
 import request from '@/utils/request'
 
-export function saveShare(data) {
+/* export function saveShare(data) {
   return request({
     url: '/api/share/',
     method: 'post',
     loading: true,
     data
+  })
+} */
+
+export function shareTargets(panelId) {
+  return request({
+    url: '/api/share/queryTargets/' + panelId,
+    method: 'post',
+    loading: true
+  })
+}
+
+export function removeShares(data) {
+  return request({
+    url: '/api/share/removeShares/',
+    method: 'post',
+    loading: true,
+    data
+  })
+}
+
+export function removePanelShares(panelId) {
+  return request({
+    url: '/api/share/removePanelShares/' + panelId,
+    method: 'post',
+    loading: true
   })
 }
 
@@ -24,6 +49,14 @@ export function loadTree(data) {
     method: 'post',
     loading: true,
     data
+  })
+}
+
+export function loadShareOutTree() {
+  return request({
+    url: '/api/share/shareOut',
+    method: 'post',
+    loading: true
   })
 }
 

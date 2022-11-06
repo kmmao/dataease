@@ -1,12 +1,16 @@
-FROM registry.cn-qingdao.aliyuncs.com/dataease/fabric8-java-alpine-openjdk8-jre
+FROM registry.cn-qingdao.aliyuncs.com/dataease/fabric8-java-alpine-openjdk8-jre:edge-chromium
 
 ARG IMAGE_TAG
 
-RUN mkdir -p /opt/apps
+RUN mkdir -p /opt/apps /opt/dataease/data/feature/full /opt/dataease/drivers
 
-ADD backend/target/backend-1.0.0.jar /opt/apps
+ADD mapFiles/* /opt/dataease/data/feature/full/
 
-ENV JAVA_APP_JAR=/opt/apps/backend-1.0.0.jar
+ADD drivers/* /opt/dataease/drivers/
+
+ADD backend/target/backend-$IMAGE_TAG.jar /opt/apps
+
+ENV JAVA_APP_JAR=/opt/apps/backend-$IMAGE_TAG.jar
 
 ENV AB_OFF=true
 

@@ -1,26 +1,71 @@
 <template lang="html">
-  <div class="cron" :val="value_">
+  <div
+    class="cron"
+    :val="value_"
+  >
     <el-tabs v-model="activeName">
-      <el-tab-pane :label="$t('cron.second')" name="s">
-        <second-and-minute v-model="sVal" :label="$t('cron.second')" />
+      <el-tab-pane
+        :label="$t('cron.second')"
+        name="s"
+      >
+        <second-and-minute
+          v-model="sVal"
+          :label="$t('cron.second')"
+        />
       </el-tab-pane>
-      <el-tab-pane :label="$t('cron.minute')" name="m">
-        <second-and-minute v-model="mVal" :label="$t('cron.minute')" />
+      <el-tab-pane
+        :label="$t('cron.minute')"
+        name="m"
+      >
+        <second-and-minute
+          v-model="mVal"
+          :label="$t('cron.minute')"
+        />
       </el-tab-pane>
-      <el-tab-pane :label="$t('cron.hour')" name="h">
-        <hour v-model="hVal" :label="$t('cron.hour')" />
+      <el-tab-pane
+        :label="$t('cron.hour')"
+        name="h"
+      >
+        <hour
+          v-model="hVal"
+          :label="$t('cron.hour')"
+        />
       </el-tab-pane>
-      <el-tab-pane :label="$t('cron.day')" name="d">
-        <day v-model="dVal" :label="$t('cron.day')" />
+      <el-tab-pane
+        :label="$t('cron.day')"
+        name="d"
+      >
+        <day
+          v-model="dVal"
+          :label="$t('cron.day')"
+        />
       </el-tab-pane>
-      <el-tab-pane :label="$t('cron.month')" name="month">
-        <month v-model="monthVal" :label="$t('cron.month')" />
+      <el-tab-pane
+        :label="$t('cron.month')"
+        name="month"
+      >
+        <month
+          v-model="monthVal"
+          :label="$t('cron.month')"
+        />
       </el-tab-pane>
-      <el-tab-pane :label="$t('cron.week')" name="week">
-        <week v-model="weekVal" :label="$t('cron.week')" />
+      <el-tab-pane
+        :label="$t('cron.week')"
+        name="week"
+      >
+        <week
+          v-model="weekVal"
+          :label="$t('cron.week')"
+        />
       </el-tab-pane>
-      <el-tab-pane :label="$t('cron.year')" name="year">
-        <year v-model="yearVal" :label="$t('cron.year')" />
+      <el-tab-pane
+        :label="$t('cron.year')"
+        name="year"
+      >
+        <year
+          v-model="yearVal"
+          :label="$t('cron.year')"
+        />
       </el-tab-pane>
     </el-tabs>
     <!-- table -->
@@ -82,6 +127,9 @@ export default {
   props: {
     value: {
       type: String
+    },
+    isRate: {
+      type: Boolean
     }
   },
   data() {
@@ -126,19 +174,20 @@ export default {
         })
       }
       const v = `${this.sVal} ${this.mVal} ${this.hVal} ${this.dVal} ${this.monthVal} ${this.weekVal} ${this.yearVal}`
-      if (v !== this.value) {
-        this.$emit('input', v)
-      }
+      // if (v !== this.value) {
+      this.$emit('input', v)
+      // }
       return v
     }
   },
   watch: {
-    'value'(a, b) {
-      this.updateVal()
+    value: {
+      handler() {
+        if (!this.isRate) return
+        this.updateVal()
+      },
+      immediate: true
     }
-  },
-  created() {
-    this.updateVal()
   },
   methods: {
     updateVal() {

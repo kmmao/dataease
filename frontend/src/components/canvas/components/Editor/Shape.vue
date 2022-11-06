@@ -1,7 +1,21 @@
 <template>
-  <div class="shape" :class="classInfo" @mouseenter="enter" @mouseleave="leave" @click="selectCurComponent" @mousedown="handleMouseDownOnShape">
-    <span v-show="isActive()" class="iconfont icon-xiangyouxuanzhuan" @mousedown="handleRotate" />
-    <span v-show="element.isLock" class="iconfont icon-suo" />
+  <div
+    class="shape"
+    :class="classInfo"
+    @mouseenter="enter"
+    @mouseleave="leave"
+    @click="selectCurComponent"
+    @mousedown="handleMouseDownOnShape"
+  >
+    <span
+      v-show="isActive()"
+      class="iconfont icon-xiangyouxuanzhuan"
+      @mousedown="handleRotate"
+    />
+    <span
+      v-show="element.isLock"
+      class="iconfont icon-suo"
+    />
 
     <!--    <span v-show="isActive()" class="iconfont icon-more">-->
     <!--      <el-button-->
@@ -25,7 +39,7 @@
 import eventBus from '@/components/canvas/utils/eventBus'
 import runAnimation from '@/components/canvas/utils/runAnimation'
 import { mapState } from 'vuex'
-import calculateComponentPositonAndSize from '@/components/canvas/utils/calculateComponentPositonAndSize'
+import calculateComponentPositionAndSize from '@/components/canvas/utils/calculateComponentPositionAndSize'
 import { mod360 } from '@/components/canvas/utils/translate'
 
 export default {
@@ -94,13 +108,17 @@ export default {
     }
     this.element.type === 'custom' && (this.pointList = ['l', 'r'])
 
-    eventBus.$on('runAnimation', () => {
+    eventBus.$on('runAnimation', this.runAnimation)
+  },
+  beforeDestroy() {
+    eventBus.$off('runAnimation', this.runAnimation)
+  },
+  methods: {
+    runAnimation() {
       if (this.element === this.curComponent) {
         runAnimation(this.$el, this.curComponent.animations)
       }
-    })
-  },
-  methods: {
+    },
     // 鼠标移入事件
     enter() {
       this.mouseOn = true
@@ -226,7 +244,7 @@ export default {
 
     handleMouseDownOnShape(e) {
       this.$store.commit('setClickComponentStatus', true)
-      if (this.element.component !== 'v-text' && this.element.component !== 'rect-shape' && this.element.component !== 'de-input-search' && this.element.component !== 'de-number-range') {
+      if (this.element.component !== 'v-text' && this.element.component !== 'rect-shape' && this.element.component !== 'de-input-search' && this.element.component !== 'de-select-grid' && this.element.component !== 'de-number-range' && this.element.component !== 'de-date') {
         e.preventDefault()
       }
 
@@ -329,17 +347,16 @@ export default {
         }
 
         needSave = true
-        const curPositon = {
+        const curPosition = {
           x: moveEvent.clientX - editorRectInfo.left,
           y: moveEvent.clientY - editorRectInfo.top
         }
 
-        calculateComponentPositonAndSize(point, style, curPositon, proportion, needLockProportion, {
+        calculateComponentPositionAndSize(point, style, curPosition, proportion, needLockProportion, {
           center,
           curPoint,
           symmetricPoint
         })
-        // console.log('this is test:' + JSON.stringify(this.element.propValue.viewId))
         this.$store.commit('setShapeStyle', style)
         this.element.propValue && this.element.propValue.viewId && eventBus.$emit('resizing', this.element.propValue.viewId)
       }

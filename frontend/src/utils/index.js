@@ -1,14 +1,27 @@
-
-export function timeSection(date, type) {
+import Cookies from 'js-cookie'
+export function timeSection(date, type, labelFormat = 'yyyy-MM-dd') {
   if (!date) {
     return null
   }
+  if (!(date instanceof Date)) {
+    date = new Date(date)
+  }
   const timeRanger = new Array(2)
 
-  date.setHours(0)
-  date.setMinutes(0)
-  date.setSeconds(0)
-  date.setMilliseconds(0)
+  const formatArr = labelFormat ? labelFormat.split(' ') : []
+  const methods = ['setHours', 'setMinutes', 'setSeconds', 'setMilliseconds']
+  let methodsLen = methods.length
+  if (type === 'datetime' && formatArr.length > 1) {
+    const childArr = formatArr[1] ? formatArr[1].split(':') : []
+    const childArrLength = childArr ? childArr.length : 0
+
+    while (--methodsLen >= childArrLength) {
+      date[methods[methodsLen]](0)
+    }
+  } else {
+    methods.forEach(m => date[m](0))
+  }
+
   const end = new Date(date)
   if (type === 'year') {
     date.setDate(1)
@@ -33,6 +46,23 @@ export function timeSection(date, type) {
     end.setMinutes(59)
     end.setSeconds(59)
     end.setMilliseconds(999)
+    timeRanger[1] = end.getTime()
+  }
+
+  if (type === 'datetime') {
+    methodsLen = methods.length
+    if (formatArr.length > 1) {
+      const childArr = formatArr[1] ? formatArr[1].split(':') : []
+      const childArrLength = childArr ? childArr.length : 0
+
+      while (--methodsLen >= childArrLength) {
+        end[methods[methodsLen]](methodsLen === 0 ? 23 : methodsLen === 3 ? 999 : 59)
+      }
+    } else {
+      while (--methodsLen >= 0) {
+        end[methods[methodsLen]](methodsLen === 0 ? 23 : methodsLen === 3 ? 999 : 59)
+      }
+    }
     timeRanger[1] = end.getTime()
   }
   timeRanger[0] = date.getTime()
@@ -94,7 +124,9 @@ export function parseTime(time, cFormat) {
   const time_str = format.replace(/{([ymdhisa])+}/g, (result, key) => {
     const value = formatObj[key]
     // Note: getDay() returns 0 on Sunday
-    if (key === 'a') { return ['日', '一', '二', '三', '四', '五', '六'][value ] }
+    if (key === 'a') {
+      return ['日', '一', '二', '三', '四', '五', '六'][value]
+    }
     return value.toString().padStart(2, '0')
   })
   return time_str
@@ -111,19 +143,19 @@ export function hasClass(ele, cls) {
 }
 
 /**
-   * Add class to element
-   * @param {HTMLElement} elm
-   * @param {string} cls
-   */
+ * Add class to element
+ * @param {HTMLElement} elm
+ * @param {string} cls
+ */
 export function addClass(ele, cls) {
   if (!hasClass(ele, cls)) ele.className += ' ' + cls
 }
 
 /**
-   * Remove class from element
-   * @param {HTMLElement} elm
-   * @param {string} cls
-   */
+ * Remove class from element
+ * @param {HTMLElement} elm
+ * @param {string} cls
+ */
 export function removeClass(ele, cls) {
   if (hasClass(ele, cls)) {
     const reg = new RegExp('(\\s|^)' + cls + '(\\s|$)')
@@ -185,34 +217,22 @@ export function param2Obj(url) {
   }
   return JSON.parse(
     '{"' +
-      decodeURIComponent(search)
-        .replace(/"/g, '\\"')
-        .replace(/&/g, '","')
-        .replace(/=/g, '":"')
-        .replace(/\+/g, ' ') +
-      '"}'
+    decodeURIComponent(search)
+      .replace(/"/g, '\\"')
+      .replace(/&/g, '","')
+      .replace(/=/g, '":"')
+      .replace(/\+/g, ' ') +
+    '"}'
   )
 }
-
-// export function formatCondition(param) {
-//   if (!param) {
-//     return null
-//   }
-//   const condition = {}
-//   for (const key in param) {
-//     if (Object.hasOwnProperty.call(param, key)) {
-//       const element = param[key]
-//       condition[element.field] = element.value
-//     }
-//   }
-//   return condition
-// }
 
 export function formatCondition(param) {
   if (!param) {
     return null
   }
-  const result = { conditions: [] }
+  const result = {
+    conditions: []
+  }
   // eslint-disable-next-line no-unused-vars
   for (const [key, value] of Object.entries(param)) {
     result.conditions.push(value)
@@ -265,12 +285,43 @@ export function formatQuickCondition(param, quickField) {
 }
 
 export function getQueryVariable(variable) {
-  const query = window.location.search.substring(1)
-  const vars = query.split('&')
-  for (var i = 0; i < vars.length; i++) {
-    const pair = vars[i].split('=')
-    if (pair[0] === variable) { return pair[1] }
+  let query = window.location.search.substring(1)
+  if (!query) {
+    query = Cookies.get(variable)
+  }
+  if (query !== undefined) {
+    const vars = query.split('&')
+    for (var i = 0; i < vars.length; i++) {
+      const pair = vars[i].split('=')
+      if (pair[0] === variable) {
+        return pair[1]
+      }
+    }
   }
   return (false)
 }
 
+export function isMobile() {
+  const flag = navigator.userAgent.match(/(phone|pad|pod|iPhone|iPod|ios|iPad|Android|Mobile|BlackBerry|IEMobile|MQQBrowser|JUC|Fennec|wOSBrowser|BrowserNG|WebOS|Symbian|Windows Phone)/i)
+  return flag
+}
+
+export const isSameVueObj = (source, target) => {
+  if (!source && !target) return true
+  if (!!source && !!target) {
+    return JSON.stringify(source) === JSON.stringify(target)
+  }
+  return false
+}
+
+export const changeFavicon = link => {
+  let $favicon = document.querySelector('link[rel="icon"]')
+  if ($favicon !== null) {
+    $favicon.href = link
+  } else {
+    $favicon = document.createElement('link')
+    $favicon.rel = 'icon'
+    $favicon.href = link
+    document.head.appendChild($favicon)
+  }
+}

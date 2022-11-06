@@ -1,13 +1,39 @@
 <template>
 
-  <el-form v-if="options!== null && options.attrs!==null" ref="form" :model="form" :rules="rules">
+  <el-form
+    v-if="element.options!== null && element.options.attrs!==null"
+    ref="form"
+    :model="form"
+    style="width: 100%;"
+    :rules="rules"
+  >
     <div class="de-number-range-container">
-      <el-form-item prop="min">
-        <el-input v-model="form.min" :placeholder="$t(options.attrs.placeholder_min)" @change="handleMinChange" />
+      <el-form-item
+        prop="min"
+        style="padding-left: 0px;"
+      >
+        <el-input
+          ref="de-number-range-min"
+          v-model="form.min"
+          :placeholder="$t(element.options.attrs.placeholder_min)"
+          :size="size"
+          @input="inputChange"
+          @change="handleMinChange"
+        />
       </el-form-item>
       <span>{{ $t('denumberrange.split_placeholder') }}</span>
-      <el-form-item prop="max">
-        <el-input v-model="form.max" :placeholder="$t(options.attrs.placeholder_max)" @change="handleMaxChange" />
+      <el-form-item
+        prop="max"
+        style="padding-right: 0px;width: calc(50% - 4px) !important;"
+      >
+        <el-input
+          ref="de-number-range-max"
+          v-model="form.max"
+          :placeholder="$t(element.options.attrs.placeholder_max)"
+          :size="size"
+          @input="inputChange"
+          @change="handleMaxChange"
+        />
       </el-form-item>
     </div>
   </el-form>
@@ -17,9 +43,14 @@
 <script>
 const MIN_NUMBER = -2147483648
 const MAX_NUMBER = 2147483647
+import bus from '@/utils/bus'
 export default {
 
   props: {
+    canvasId: {
+      type: String,
+      required: true
+    },
     element: {
       type: Object,
       default: null
@@ -27,12 +58,16 @@ export default {
     inDraw: {
       type: Boolean,
       default: true
+    },
+    size: String,
+    isRelation: {
+      type: Boolean,
+      default: false
     }
   },
 
   data() {
     return {
-      options: null,
       operator: 'between',
       values: null,
       canEdit: false,
@@ -54,10 +89,38 @@ export default {
       timeMachine: null
     }
   },
+  computed: {
+    defaultvalues() {
+      if (!this.element.options.value) {
+        return JSON.stringify([])
+      }
+      return JSON.stringify(this.element.options.value)
+    },
+    viewIds() {
+      if (!this.element || !this.element.options || !this.element.options.attrs.viewIds) return ''
+      return this.element.options.attrs.viewIds.toString()
+    },
+    manualModify() {
+      return !!this.element.options.manualModify
+    }
+  },
   watch: {
+    'viewIds': function(value, old) {
+      if (typeof value === 'undefined' || value === old) return
+      this.setCondition()
+    },
+    'defaultvalues': function(value, old) {
+      if (value === old) return
+      const values = this.element.options.value
+      this.form.min = values[0]
+      if (values.length > 1) {
+        this.form.max = values[1]
+      }
+      this.search()
+    },
     form: {
       handler(value) {
-        this.destryTimeMachine()
+        this.destroyTimeMachine()
         this.changeIndex++
         this.searchWithKey(this.changeIndex)
       },
@@ -65,18 +128,47 @@ export default {
     }
   },
   created() {
-    this.options = this.element.options
+    if (this.element.options.value && this.element.options.value.length > 0) {
+      const values = this.element.options.value
+      this.form.min = values[0]
+      if (values.length > 1) {
+        this.form.max = values[1]
+      }
+      this.search()
+    }
+  },
+  mounted() {
+    if (this.inDraw) {
+      bus.$on('reset-default-value', this.resetDefaultValue)
+    }
+  },
+  beforeDestroy() {
+    bus.$off('reset-default-value', this.resetDefaultValue)
   },
   methods: {
+    clearHandler() {
+      this.form.min = null
+      this.form.max = null
+    },
+    resetDefaultValue(id) {
+      if (this.inDraw && this.manualModify && this.element.id === id) {
+        const values = this.element.options.value
+        this.form.min = values[0]
+        if (values.length > 1) {
+          this.form.max = values[1]
+        }
+        this.search()
+      }
+    },
     searchWithKey(index) {
       this.timeMachine = setTimeout(() => {
         if (index === this.changeIndex) {
           this.search()
         }
-        this.destryTimeMachine()
+        this.destroyTimeMachine()
       }, 1000)
     },
-    destryTimeMachine() {
+    destroyTimeMachine() {
       this.timeMachine && clearTimeout(this.timeMachine)
       this.timeMachine = null
     },
@@ -130,45 +222,76 @@ export default {
     },
 
     search() {
-      this.$refs.form.validate(valid => {
-        if (!valid) {
-          return false
-        }
-        this.setCondition()
-        this.styleChange()
+      this.$nextTick(() => {
+        this.$refs.form.validate(valid => {
+          if (!valid) {
+            return false
+          }
+
+          this.setCondition()
+        })
       })
     },
-    setCondition() {
+    getCondition() {
       const param = {
+        canvasId: this.canvasId,
         component: this.element,
-        // value: !this.values ? [] : Array.isArray(this.values) ? this.values : [this.values],
         value: [this.form.min, this.form.max],
         operator: this.operator
       }
       if (this.form.min && this.form.max) {
-        this.inDraw && this.$store.commit('addViewFilter', param)
+        return param
+      }
+      if (!this.form.min && !this.form.max) {
+        param.value = []
+        return param
+      }
+      if (this.form.min) {
+        param.value = [this.form.min]
+        param.operator = 'ge'
+        return param
+      }
+      if (this.form.max) {
+        param.value = [this.form.max]
+        param.operator = 'le'
+        return param
+      }
+      return param
+    },
+    setCondition() {
+      const param = this.getCondition()
+
+      if (this.form.min && this.form.max) {
+        !this.isRelation && this.inDraw && this.$store.commit('addViewFilter', param)
         return
       }
       if (!this.form.min && !this.form.max) {
         param.value = []
-        this.inDraw && this.$store.commit('addViewFilter', param)
+        !this.isRelation && this.inDraw && this.$store.commit('addViewFilter', param)
         return
       }
       if (this.form.min) {
         param.value = [this.form.min]
         param.operator = 'ge'
-        this.inDraw && this.$store.commit('addViewFilter', param)
+        !this.isRelation && this.inDraw && this.$store.commit('addViewFilter', param)
         return
       }
       if (this.form.max) {
         param.value = [this.form.max]
         param.operator = 'le'
-        this.inDraw && this.$store.commit('addViewFilter', param)
+        !this.isRelation && this.inDraw && this.$store.commit('addViewFilter', param)
         return
       }
     },
-    styleChange() {
-      this.$store.state.styleChangeTimes++
+
+    inputChange(val) {
+      if (!this.inDraw) {
+        const values = [this.form.min, this.form.max]
+        this.element.options.value = values
+        this.element.options.manualModify = false
+      } else {
+        this.element.options.manualModify = true
+      }
     }
   }
 }
@@ -177,7 +300,8 @@ export default {
 <style lang="scss" scoped>
 .de-number-range-container {
   display: inline;
-  >>>div.el-form-item {
+  max-height: 40px;
+  ::v-deep div.el-form-item {
     width: calc(50% - 10px) !important;
     display: inline-block;
     padding: 0 5px;

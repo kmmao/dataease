@@ -1,25 +1,55 @@
 <template>
   <el-col>
     <el-row style="height: 25px;">
-      <span class="table-name">{{ table.name }}</span>
+      <span class="table-name title-text">{{ table.name }}</span>
     </el-row>
     <el-divider />
-    <el-checkbox v-model="checkAll" :disabled="!(fields.length > 0)" :indeterminate="isIndeterminate" style="font-weight: 400;" @change="handleCheckAllChange">{{ $t('dataset.check_all') }}</el-checkbox>
-    <el-checkbox-group v-model="checkedFields" @change="handleCheckedFieldsChange">
-      <el-checkbox v-for="f in fields" :key="f.id" :label="f.id" style="display: block;margin-top: 4px;width: 100%;font-weight: 400;">
+    <el-checkbox
+      v-model="checkAll"
+      :disabled="!(fields.length > 0)"
+      :indeterminate="isIndeterminate"
+      style="font-weight: 400;"
+      @change="handleCheckAllChange"
+    >{{ $t('dataset.check_all') }}</el-checkbox>
+    <el-checkbox-group
+      v-model="checkedFields"
+      @change="handleCheckedFieldsChange"
+    >
+      <el-checkbox
+        v-for="f in fields"
+        :key="f.id"
+        :label="f.id"
+        style="display: block;margin-top: 4px;width: 100%;font-weight: 400;"
+      >
         <span style="display: flex;flex-direction: row;flex: 1;">
           <span>
             <span v-if="f.deType === 0">
-              <svg-icon v-if="f.deType === 0" icon-class="field_text" class="field-icon-text" />
+              <svg-icon
+                v-if="f.deType === 0"
+                icon-class="field_text"
+                class="field-icon-text"
+              />
             </span>
             <span v-if="f.deType === 1">
-              <svg-icon v-if="f.deType === 1" icon-class="field_time" class="field-icon-time" />
+              <svg-icon
+                v-if="f.deType === 1"
+                icon-class="field_time"
+                class="field-icon-time"
+              />
             </span>
             <span v-if="f.deType === 2 || f.deType === 3">
-              <svg-icon v-if="f.deType === 2 || f.deType === 3" icon-class="field_value" class="field-icon-value" />
+              <svg-icon
+                v-if="f.deType === 2 || f.deType === 3"
+                icon-class="field_value"
+                class="field-icon-value"
+              />
             </span>
             <span v-if="f.deType === 5">
-              <svg-icon v-if="f.deType === 5" icon-class="field_location" class="field-icon-location" />
+              <svg-icon
+                v-if="f.deType === 5"
+                icon-class="field_location"
+                class="field-icon-location"
+              />
             </span>
           </span>
           <span style="display: flex;flex: 1;width: 100%;">
@@ -57,7 +87,7 @@ export default {
   watch: {
     'table': function() {
       fieldList(this.table.id).then(response => {
-        this.fields = response.data
+        this.fields = JSON.parse(JSON.stringify(response.data)).filter(ele => ele.extField === 0)
 
         this.checkedFields = []
         this.checkedList.forEach(ele => {
@@ -78,7 +108,7 @@ export default {
     initField() {
       if (this.table.id) {
         fieldList(this.table.id).then(response => {
-          this.fields = response.data
+          this.fields = JSON.parse(JSON.stringify(response.data)).filter(ele => ele.extField === 0)
         })
       }
     },

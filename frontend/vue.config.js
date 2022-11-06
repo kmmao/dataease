@@ -3,7 +3,9 @@ const path = require('path')
 const defaultSettings = require('./src/settings.js')
 
 const CopyWebpackPlugin = require('copy-webpack-plugin')
-
+// const CompressionPlugin = require('compression-webpack-plugin')
+const webpack = require('webpack')
+const AddAssetHtmlPlugin = require('add-asset-html-webpack-plugin')
 function resolve(dir) {
   return path.join(__dirname, dir)
 }
@@ -11,15 +13,17 @@ function resolve(dir) {
 const name = defaultSettings.title || 'vue Admin Template' // page title
 
 const port = process.env.port || process.env.npm_config_port || 9528 // dev port
+const parallel = process.env.NODE_ENV === 'development'
 module.exports = {
   productionSourceMap: true,
+  parallel,
   // 使用mock-server
   devServer: {
     port: port,
     proxy: {
       '^(?!/login)': {
         target: 'http://localhost:8081/',
-        ws: false
+        ws: true
       }
     },
     open: true,
@@ -35,11 +39,6 @@ module.exports = {
       entry: 'src/main.js',
       template: 'public/index.html',
       filename: 'index.html'
-    },
-    link: {
-      entry: 'src/link/link.js',
-      template: 'public/link.html',
-      filename: 'link.html'
     }
   },
   configureWebpack: {
@@ -56,7 +55,20 @@ module.exports = {
           from: path.join(__dirname, 'static'),
           to: path.join(__dirname, 'dist/static')
         }
-      ])
+      ]),
+      new webpack.DllReferencePlugin({
+        context: process.cwd(),
+        manifest: require('./public/vendor/vendor-manifest.json')
+      }),
+      // 将 dll 注入到 生成的 html 模板中
+      new AddAssetHtmlPlugin({
+        // dll文件位置
+        filepath: path.resolve(__dirname, './public/vendor/*.js'),
+        // dll 引用路径
+        publicPath: './vendor',
+        // dll最终输出的目录
+        outputPath: './vendor'
+      })
     ]
   },
   chainWebpack: config => {
@@ -74,6 +86,24 @@ module.exports = {
       .options({
         symbolId: 'icon-[name]'
       })
+    if (process.env.NODE_ENV === 'production') {
+      /* config.plugin('compressionPlugin').use(new CompressionPlugin({
+        test: /\.(js|css|less)$/, // 匹配文件名
+        threshold: 10240, // 对超过10k的数据压缩
+        minRatio: 0.8,
+        deleteOriginalAssets: true // 删除源文件
+      })) */
+    }
+  },
+  css: {
+    loaderOptions: {
+      sass: {
+        prependData: `@import "@/style/index.scss"`
+      }
+    },
+    extract: {
+      ignoreOrder: true,
+    }
   }
 
 }

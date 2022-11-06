@@ -1,52 +1,88 @@
 <template xmlns:el-col="http://www.w3.org/1999/html">
   <el-col class="tree-style">
-    <!-- group -->
-    <el-col v-if="!sceneMode">
+    <el-col>
       <el-row class="title-css">
         <span class="title-text">
           {{ $t('chart.datalist') }}
         </span>
-        <el-button icon="el-icon-plus" type="text" size="mini" style="float: right;" @click="add('group')" />
+        <el-button
+          icon="el-icon-plus"
+          type="text"
+          size="mini"
+          style="float: right;"
+          @click="add('group')"
+        />
       </el-row>
       <el-divider />
-      <el-row>
-        <el-form>
-          <el-form-item class="form-item">
-            <el-input
-              v-model="search"
+      <el-row style="margin-bottom: 10px">
+        <el-col :span="16">
+          <el-input
+            v-model="filterText"
+            size="mini"
+            :placeholder="$t('commons.search')"
+            prefix-icon="el-icon-search"
+            clearable
+            class="main-area-input"
+          />
+        </el-col>
+        <el-col :span="8">
+          <el-dropdown>
+            <el-button
               size="mini"
-              :placeholder="$t('chart.search')"
-              prefix-icon="el-icon-search"
-              clearable
-            />
-          </el-form-item>
-        </el-form>
+              type="primary"
+            >
+              {{ searchMap[searchType] }}<i class="el-icon-arrow-down el-icon--right" />
+            </el-button>
+            <el-dropdown-menu slot="dropdown">
+              <el-dropdown-item @click.native="searchTypeClick('all')">{{ $t('commons.all') }}</el-dropdown-item>
+              <el-dropdown-item @click.native="searchTypeClick('folder')">{{ $t('commons.folder') }}
+              </el-dropdown-item>
+            </el-dropdown-menu>
+          </el-dropdown>
+        </el-col>
       </el-row>
 
       <el-col class="custom-tree-container">
         <div class="block">
           <el-tree
-            ref="asyncTree"
+            ref="chartTreeRef"
             :default-expanded-keys="expandedArray"
             :data="tData"
             node-key="id"
-            :expand-on-click-node="true"
-            :load="loadNode"
-            lazy
-            :props="treeProps"
             highlight-current
+            :expand-on-click-node="true"
+            :filter-node-method="filterNode"
             @node-click="nodeClick"
+            @node-expand="nodeExpand"
+            @node-collapse="nodeCollapse"
           >
-            <span v-if="data.type ==='group'" slot-scope="{ node, data }" class="custom-tree-node father">
+            <span
+              v-if="data.modelInnerType ==='group'"
+              slot-scope="{ node, data }"
+              class="custom-tree-node father"
+            >
               <span style="display: flex;flex: 1;width: 0;">
                 <span>
                   <i class="el-icon-folder" />
                 </span>
-                <span style="margin-left: 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" :title="data.name">{{ data.name }}</span>
+                <span
+                  style="margin-left: 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
+                  :title="data.name"
+                >{{ data.name }}</span>
               </span>
-              <span v-if="hasDataPermission('manage',data.privileges)" class="child">
-                <span v-if="data.type ==='group'" @click.stop>
-                  <el-dropdown trigger="click" size="small" @command="clickAdd">
+              <span
+                v-if="hasDataPermission('manage',data.privileges)"
+                class="child"
+              >
+                <span
+                  v-if="data.modelInnerType ==='group'"
+                  @click.stop
+                >
+                  <el-dropdown
+                    trigger="click"
+                    size="small"
+                    @command="clickAdd"
+                  >
                     <span class="el-dropdown-link">
                       <el-button
                         icon="el-icon-plus"
@@ -55,17 +91,30 @@
                       />
                     </span>
                     <el-dropdown-menu slot="dropdown">
-                      <el-dropdown-item icon="el-icon-folder-add" :command="beforeClickAdd('group',data,node)">
+                      <el-dropdown-item
+                        icon="el-icon-folder-add"
+                        :command="beforeClickAdd('group',data,node)"
+                      >
                         {{ $t('chart.group') }}
                       </el-dropdown-item>
-                      <el-dropdown-item icon="el-icon-circle-plus" :command="beforeClickAdd('chart',data,node)">
+                      <el-dropdown-item
+                        icon="el-icon-circle-plus"
+                        :command="beforeClickAdd('chart',data,node)"
+                      >
                         {{ $t('chart.add_chart') }}
                       </el-dropdown-item>
                     </el-dropdown-menu>
                   </el-dropdown>
                 </span>
-                <span style="margin-left: 12px;" @click.stop>
-                  <el-dropdown trigger="click" size="small" @command="clickMore">
+                <span
+                  style="margin-left: 12px;"
+                  @click.stop
+                >
+                  <el-dropdown
+                    trigger="click"
+                    size="small"
+                    @command="clickMore"
+                  >
                     <span class="el-dropdown-link">
                       <el-button
                         icon="el-icon-more"
@@ -74,13 +123,22 @@
                       />
                     </span>
                     <el-dropdown-menu slot="dropdown">
-                      <el-dropdown-item icon="el-icon-edit-outline" :command="beforeClickMore('rename',data,node)">
+                      <el-dropdown-item
+                        icon="el-icon-edit-outline"
+                        :command="beforeClickMore('rename',data,node)"
+                      >
                         {{ $t('chart.rename') }}
                       </el-dropdown-item>
-                      <el-dropdown-item icon="el-icon-right" :command="beforeClickMore('move',data,node)">
+                      <el-dropdown-item
+                        icon="el-icon-right"
+                        :command="beforeClickMore('move',data,node)"
+                      >
                         {{ $t('dataset.move_to') }}
                       </el-dropdown-item>
-                      <el-dropdown-item icon="el-icon-delete" :command="beforeClickMore('delete',data,node)">
+                      <el-dropdown-item
+                        icon="el-icon-delete"
+                        :command="beforeClickMore('delete',data,node)"
+                      >
                         {{ $t('chart.delete') }}
                       </el-dropdown-item>
                     </el-dropdown-menu>
@@ -88,14 +146,31 @@
                 </span>
               </span>
             </span>
-            <span v-else slot-scope="{ node, data }" class="custom-tree-node-list father">
+            <span
+              v-else
+              slot-scope="{ node, data }"
+              class="custom-tree-node-list father"
+            >
               <span style="display: flex;flex: 1;width: 0;">
-                <span><svg-icon :icon-class="data.type" /></span>
-                <span style="margin-left: 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" :title="data.name">{{ data.name }}</span>
+                <span><svg-icon :icon-class="data.modelInnerType" /></span>
+                <span
+                  style="margin-left: 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
+                  :title="data.name"
+                >{{ data.name }}</span>
               </span>
-              <span v-if="hasDataPermission('manage',data.privileges)" class="child">
-                <span style="margin-left: 12px;" @click.stop>
-                  <el-dropdown trigger="click" size="small" @command="clickMore">
+              <span
+                v-if="hasDataPermission('manage',data.privileges)"
+                class="child"
+              >
+                <span
+                  style="margin-left: 12px;"
+                  @click.stop
+                >
+                  <el-dropdown
+                    trigger="click"
+                    size="small"
+                    @command="clickMore"
+                  >
                     <span class="el-dropdown-link">
                       <el-button
                         icon="el-icon-more"
@@ -104,13 +179,22 @@
                       />
                     </span>
                     <el-dropdown-menu slot="dropdown">
-                      <el-dropdown-item icon="el-icon-edit-outline" :command="beforeClickMore('renameChart',data,node)">
+                      <el-dropdown-item
+                        icon="el-icon-edit-outline"
+                        :command="beforeClickMore('renameChart',data,node)"
+                      >
                         {{ $t('chart.rename') }}
                       </el-dropdown-item>
-                      <el-dropdown-item icon="el-icon-right" :command="beforeClickMore('moveDs',data,node)">
+                      <el-dropdown-item
+                        icon="el-icon-right"
+                        :command="beforeClickMore('moveDs',data,node)"
+                      >
                         {{ $t('dataset.move_to') }}
                       </el-dropdown-item>
-                      <el-dropdown-item icon="el-icon-delete" :command="beforeClickMore('deleteChart',data,node)">
+                      <el-dropdown-item
+                        icon="el-icon-delete"
+                        :command="beforeClickMore('deleteChart',data,node)"
+                      >
                         {{ $t('chart.delete') }}
                       </el-dropdown-item>
                     </el-dropdown-menu>
@@ -123,190 +207,272 @@
       </el-col>
 
       <!--group add/edit-->
-      <el-dialog v-dialogDrag :title="dialogTitle" :visible="editGroup" :show-close="false" width="30%">
-        <el-form ref="groupForm" :model="groupForm" :rules="groupFormRules" @keypress.enter.native="saveGroup(groupForm)">
-          <el-form-item :label="$t('commons.name')" prop="name">
+      <el-dialog
+        v-dialogDrag
+        :title="dialogTitle"
+        :visible="editGroup"
+        :show-close="false"
+        width="30%"
+      >
+        <el-form
+          ref="groupForm"
+          :model="groupForm"
+          :rules="groupFormRules"
+          @keypress.enter.native="saveGroup(groupForm)"
+          @submit.native.prevent
+        >
+          <el-form-item
+            :label="$t('commons.name')"
+            prop="name"
+          >
             <el-input v-model="groupForm.name" />
           </el-form-item>
         </el-form>
-        <div slot="footer" class="dialog-footer">
-          <el-button size="mini" @click="close()">{{ $t('chart.cancel') }}</el-button>
-          <el-button type="primary" size="mini" @click="saveGroup(groupForm)">{{ $t('chart.confirm') }}</el-button>
+        <div
+          slot="footer"
+          class="dialog-footer"
+        >
+          <el-button
+            size="mini"
+            @click="close()"
+          >{{ $t('chart.cancel') }}</el-button>
+          <el-button
+            type="primary"
+            size="mini"
+            @click="saveGroup(groupForm)"
+          >{{ $t('chart.confirm') }}</el-button>
         </div>
       </el-dialog>
     </el-col>
 
-    <!--scene-->
-    <!--    <el-col v-if="sceneMode">-->
-    <!--      <el-row class="title-css scene-title">-->
-    <!--        <span class="title-text scene-title-name" :title="currGroup.name">-->
-    <!--          {{ currGroup.name }}-->
-    <!--        </span>-->
-    <!--        <el-button icon="el-icon-back" size="mini" style="float: right" circle @click="back">-->
-    <!--          &lt;!&ndash;          {{ $t('chart.back') }}&ndash;&gt;-->
-    <!--        </el-button>-->
-    <!--      </el-row>-->
-    <!--      <el-divider />-->
-    <!--      <el-row>-->
-    <!--        <el-button type="primary" size="mini" plain @click="selectTable">-->
-    <!--          {{ $t('chart.add_chart') }}-->
-    <!--        </el-button>-->
-    <!--      </el-row>-->
-    <!--      <el-row>-->
-    <!--        <el-form>-->
-    <!--          <el-form-item class="form-item">-->
-    <!--            <el-input-->
-    <!--              v-model="search"-->
-    <!--              size="mini"-->
-    <!--              :placeholder="$t('chart.search')"-->
-    <!--              prefix-icon="el-icon-search"-->
-    <!--              clearable-->
-    <!--            />-->
-    <!--          </el-form-item>-->
-    <!--        </el-form>-->
-    <!--      </el-row>-->
-    <!--      <span v-show="false">{{ sceneData }}</span>-->
-    <!--      <el-tree-->
-    <!--        :data="chartData"-->
-    <!--        node-key="id"-->
-    <!--        :expand-on-click-node="true"-->
-    <!--        class="tree-list"-->
-    <!--        highlight-current-->
-    <!--        @node-click="sceneClick"-->
-    <!--      >-->
-    <!--        <span slot-scope="{ node, data }" class="custom-tree-node-list father">-->
-    <!--          <span style="display: flex;flex: 1;width: 0;">-->
-    <!--            <span><svg-icon :icon-class="data.type" /></span>-->
-    <!--            <span style="margin-left: 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" :title="data.name">{{ data.name }}</span>-->
-    <!--          </span>-->
-    <!--          <span v-if="hasDataPermission('manage',data.privileges)" class="child">-->
-    <!--            <span style="margin-left: 12px;" @click.stop>-->
-    <!--              <el-dropdown trigger="click" size="small" @command="clickMore">-->
-    <!--                <span class="el-dropdown-link">-->
-    <!--                  <el-button-->
-    <!--                    icon="el-icon-more"-->
-    <!--                    type="text"-->
-    <!--                    size="small"-->
-    <!--                  />-->
-    <!--                </span>-->
-    <!--                <el-dropdown-menu slot="dropdown">-->
-    <!--                  &lt;!&ndash;                  <el-dropdown-item icon="el-icon-edit-outline" :command="beforeClickMore('renameChart',data,node)">&ndash;&gt;-->
-    <!--                  &lt;!&ndash;                    {{ $t('chart.rename') }}&ndash;&gt;-->
-    <!--                  &lt;!&ndash;                  </el-dropdown-item>&ndash;&gt;-->
-    <!--                  <el-dropdown-item icon="el-icon-delete" :command="beforeClickMore('deleteChart',data,node)">-->
-    <!--                    {{ $t('chart.delete') }}-->
-    <!--                  </el-dropdown-item>-->
-    <!--                </el-dropdown-menu>-->
-    <!--              </el-dropdown>-->
-    <!--            </span>-->
-    <!--          </span>-->
-    <!--        </span>-->
-    <!--      </el-tree>-->
-
-    <!--      &lt;!&ndash;rename chart&ndash;&gt;-->
-    <!--      <el-dialog v-dialogDrag :title="$t('chart.chart')" :visible="editTable" :show-close="false" width="30%">-->
-    <!--        <el-form ref="tableForm" :model="tableForm" :rules="tableFormRules" @keyup.enter.native="saveTable(tableForm)">-->
-    <!--          <el-form-item :label="$t('commons.name')" prop="name">-->
-    <!--            <el-input v-model="tableForm.name" />-->
-    <!--          </el-form-item>-->
-    <!--        </el-form>-->
-    <!--        <div slot="footer" class="dialog-footer">-->
-    <!--          <el-button size="mini" @click="closeTable()">{{ $t('chart.cancel') }}</el-button>-->
-    <!--          <el-button type="primary" size="mini" @click="saveTable(tableForm)">{{ $t('chart.confirm') }}</el-button>-->
-    <!--        </div>-->
-    <!--      </el-dialog>-->
-
-    <!--      &lt;!&ndash;添加视图-选择数据集&ndash;&gt;-->
-    <!--      &lt;!&ndash;      <el-dialog&ndash;&gt;-->
-    <!--      &lt;!&ndash;        v-dialogDrag&ndash;&gt;-->
-    <!--      &lt;!&ndash;        :title="$t('chart.add_chart')"&ndash;&gt;-->
-    <!--      &lt;!&ndash;        :visible="selectTableFlag"&ndash;&gt;-->
-    <!--      &lt;!&ndash;        :show-close="false"&ndash;&gt;-->
-    <!--      &lt;!&ndash;        width="70%"&ndash;&gt;-->
-    <!--      &lt;!&ndash;        class="dialog-css"&ndash;&gt;-->
-    <!--      &lt;!&ndash;        :destroy-on-close="true"&ndash;&gt;-->
-    <!--      &lt;!&ndash;      >&ndash;&gt;-->
-    <!--      &lt;!&ndash;        <el-row style="width: 400px;">&ndash;&gt;-->
-    <!--      &lt;!&ndash;          <el-form ref="form" :model="table" label-width="80px" size="mini" class="form-item">&ndash;&gt;-->
-    <!--      &lt;!&ndash;            <el-form-item :label="$t('chart.view_name')">&ndash;&gt;-->
-    <!--      &lt;!&ndash;              <el-input v-model="chartName" size="mini" />&ndash;&gt;-->
-    <!--      &lt;!&ndash;            </el-form-item>&ndash;&gt;-->
-    <!--      &lt;!&ndash;          </el-form>&ndash;&gt;-->
-    <!--      &lt;!&ndash;        </el-row>&ndash;&gt;-->
-    <!--      &lt;!&ndash;        <table-selector @getTable="getTable" />&ndash;&gt;-->
-    <!--      &lt;!&ndash;        <div slot="footer" class="dialog-footer">&ndash;&gt;-->
-    <!--      &lt;!&ndash;          <el-button size="mini" @click="closeCreateChart">{{ $t('chart.cancel') }}</el-button>&ndash;&gt;-->
-    <!--      &lt;!&ndash;          <el-button type="primary" size="mini" :disabled="!table.id" @click="createChart">{{ $t('chart.confirm') }}</el-button>&ndash;&gt;-->
-    <!--      &lt;!&ndash;        </div>&ndash;&gt;-->
-    <!--      &lt;!&ndash;      </el-dialog>&ndash;&gt;-->
-
-    <!--    </el-col>-->
-
     <!--rename chart-->
-    <el-dialog v-dialogDrag :title="$t('chart.chart')" :visible="editTable" :show-close="false" width="30%">
-      <el-form ref="tableForm" :model="tableForm" :rules="tableFormRules" @keypress.enter.native="saveTable(tableForm)">
-        <el-form-item :label="$t('commons.name')" prop="name">
+    <el-dialog
+      v-dialogDrag
+      :title="$t('chart.chart')"
+      :visible="editTable"
+      :show-close="false"
+      width="30%"
+    >
+      <el-form
+        ref="tableForm"
+        :model="tableForm"
+        :rules="tableFormRules"
+        @submit.native.prevent
+        @keypress.enter.native="saveTable(tableForm)"
+      >
+        <el-form-item
+          :label="$t('commons.name')"
+          prop="name"
+        >
           <el-input v-model="tableForm.name" />
         </el-form-item>
       </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button size="mini" @click="closeTable()">{{ $t('chart.cancel') }}</el-button>
-        <el-button type="primary" size="mini" @click="saveTable(tableForm)">{{ $t('chart.confirm') }}</el-button>
+      <div
+        slot="footer"
+        class="dialog-footer"
+      >
+        <el-button
+          size="mini"
+          @click="closeTable()"
+        >{{ $t('chart.cancel') }}</el-button>
+        <el-button
+          type="primary"
+          size="mini"
+          @click="saveTable(tableForm)"
+        >{{ $t('chart.confirm') }}</el-button>
       </div>
     </el-dialog>
 
     <!--添加视图-选择数据集-->
     <el-dialog
+      v-if="selectTableFlag"
       v-dialogDrag
       :title="$t('chart.add_chart')"
       :visible="selectTableFlag"
       :show-close="false"
-      width="70%"
+      width="1000px"
       class="dialog-css"
-      :destroy-on-close="true"
     >
       <el-row style="width: 800px;">
-        <el-form ref="form" :model="table" label-width="80px" size="mini" class="form-item">
+        <el-form
+          ref="form"
+          :model="table"
+          label-width="80px"
+          size="mini"
+          class="form-item"
+          @submit.native.prevent
+        >
           <el-col :span="12">
             <el-form-item :label="$t('chart.view_name')">
-              <el-input v-model="chartName" style="height: 34px" size="mini" />
-            </el-form-item>
-          </el-col>
-          <el-col v-if="optFrom==='panel'" :span="12">
-            <el-form-item :label="$t('chart.belong_group')">
-              <treeselect
-                v-model="currGroup.id"
-                :options="chartGroupTreeAvailable"
-                :normalizer="normalizer"
-                :placeholder="$t('chart.select_group')"
+              <el-input
+                v-model="chartName"
+                style="height: 34px"
+                size="mini"
               />
             </el-form-item>
           </el-col>
         </el-form>
       </el-row>
-      <table-selector @getTable="getTable" />
-      <div slot="footer" class="dialog-footer">
-        <el-button size="mini" @click="closeCreateChart">{{ $t('chart.cancel') }}</el-button>
-        <el-button type="primary" size="mini" :disabled="!table.id || !currGroup.id" @click="createChart">{{ $t('chart.confirm') }}</el-button>
+
+      <el-steps
+        :active="createActive"
+        align-center
+      >
+        <el-step :title="$t('chart.select_dataset')" />
+        <el-step :title="$t('chart.select_chart_type')" />
+      </el-steps>
+
+      <table-selector
+        v-show="createActive === 1"
+        @getTable="getTable"
+      />
+      <el-row
+        v-show="createActive === 2"
+        style="padding: 0 20px;"
+      >
+        <el-row class="chart-box">
+          <span>
+            <span
+              class="theme-border-class"
+              style="font-size: 12px"
+            >{{ $t('chart.chart_type') }}</span>
+            <span style="float: right;">
+              <el-select
+                v-model="view.render"
+                class="render-select"
+                style="width: 70px"
+                size="mini"
+              >
+                <el-option
+                  v-for="item in pluginRenderOptions"
+                  :key="item.value"
+                  :value="item.value"
+                  :label="item.name"
+                />
+              </el-select>
+            </span>
+          </span>
+          <el-row>
+            <div>
+              <el-radio-group
+                v-model="view.type"
+                style="width: 100%"
+              >
+                <chart-type
+                  ref="cu-chart-type"
+                  :chart="view"
+                  style="height: 350px;"
+                />
+              </el-radio-group>
+            </div>
+          </el-row>
+        </el-row>
+        <el-row
+          class="chart-box"
+          style="text-align: center;"
+        >
+          <svg-icon
+            :icon-class="view.isPlugin && view.type && view.type !== 'buddle-map' ? ('/api/pluginCommon/staticInfo/' + view.type + '/svg') : view.type"
+            class="chart-icon"
+          />
+        </el-row>
+      </el-row>
+
+      <div
+        slot="footer"
+        class="dialog-footer"
+      >
+        <el-button
+          size="mini"
+          @click="closeCreateChart"
+        >{{ $t('chart.cancel') }}</el-button>
+        <el-button
+          v-if="createActive === 2"
+          type="primary"
+          size="mini"
+          @click="createPreview"
+        >{{ $t('chart.preview')
+        }}
+        </el-button>
+        <el-button
+          v-if="createActive === 1"
+          type="primary"
+          size="mini"
+          :disabled="!table.id || !currGroup.id"
+          @click="createNext"
+        >{{ $t('chart.next') }}
+        </el-button>
+        <el-button
+          v-if="createActive === 2"
+          type="primary"
+          size="mini"
+          :disabled="!table.id || !currGroup.id || !view.type"
+          @click="createChart"
+        >{{ $t('chart.confirm') }}
+        </el-button>
       </div>
     </el-dialog>
 
     <!--移动分组-->
-    <el-dialog v-dialogDrag :title="moveDialogTitle" :visible="moveGroup" :show-close="false" width="30%" class="dialog-css">
-      <group-move-selector :item="groupForm" @targetGroup="targetGroup" />
-      <div slot="footer" class="dialog-footer">
-        <el-button size="mini" @click="closeMoveGroup()">{{ $t('dataset.cancel') }}</el-button>
-        <el-button :disabled="groupMoveConfirmDisabled" type="primary" size="mini" @click="saveMoveGroup(tGroup)">{{ $t('dataset.confirm') }}
+    <el-dialog
+      v-dialogDrag
+      :title="moveDialogTitle"
+      :visible="moveGroup"
+      :show-close="false"
+      width="30%"
+      class="dialog-css"
+    >
+      <group-move-selector
+        :item="groupForm"
+        @targetGroup="targetGroup"
+      />
+      <div
+        slot="footer"
+        class="dialog-footer"
+      >
+        <el-button
+          size="mini"
+          @click="closeMoveGroup()"
+        >{{ $t('dataset.cancel') }}</el-button>
+        <el-button
+          :disabled="groupMoveConfirmDisabled"
+          type="primary"
+          size="mini"
+          @click="saveMoveGroup(tGroup)"
+        >{{
+          $t('dataset.confirm') }}
         </el-button>
       </div>
     </el-dialog>
 
     <!--移动视图-->
-    <el-dialog v-dialogDrag :title="moveDialogTitle" :visible="moveDs" :show-close="false" width="30%" class="dialog-css">
-      <chart-move-selector :item="dsForm" @targetDs="targetDs" />
-      <div slot="footer" class="dialog-footer">
-        <el-button size="mini" @click="closeMoveDs()">{{ $t('dataset.cancel') }}</el-button>
-        <el-button :disabled="dsMoveConfirmDisabled" type="primary" size="mini" @click="saveMoveDs(tDs)">{{ $t('dataset.confirm') }}
+    <el-dialog
+      v-dialogDrag
+      :title="moveDialogTitle"
+      :visible="moveDs"
+      :show-close="false"
+      width="30%"
+      class="dialog-css"
+    >
+      <chart-move-selector
+        :item="dsForm"
+        @targetDs="targetDs"
+      />
+      <div
+        slot="footer"
+        class="dialog-footer"
+      >
+        <el-button
+          size="mini"
+          @click="closeMoveDs()"
+        >{{ $t('dataset.cancel') }}</el-button>
+        <el-button
+          :disabled="dsMoveConfirmDisabled"
+          type="primary"
+          size="mini"
+          @click="saveMoveDs(tDs)"
+        >{{
+          $t('dataset.confirm') }}
         </el-button>
       </div>
     </el-dialog>
@@ -315,10 +481,12 @@
 
 <script>
 import { post, chartGroupTree } from '@/api/chart/chart'
-import { authModel } from '@/api/system/sysAuth'
+import { queryAuthModel } from '@/api/authModel/authModel'
 import TableSelector from '../view/TableSelector'
 import GroupMoveSelector from '../components/TreeSelector/GroupMoveSelector'
 import ChartMoveSelector from '../components/TreeSelector/ChartMoveSelector'
+import ChartType from '@/views/chart/view/ChartType'
+import { pluginTypes } from '@/api/chart/chart'
 import {
   DEFAULT_COLOR_CASE,
   DEFAULT_LABEL,
@@ -328,13 +496,18 @@ import {
   DEFAULT_TOOLTIP,
   DEFAULT_XAXIS_STYLE,
   DEFAULT_YAXIS_STYLE,
-  DEFAULT_BACKGROUND_COLOR,
-  DEFAULT_SPLIT
+  DEFAULT_YAXIS_EXT_STYLE,
+  DEFAULT_SPLIT,
+  DEFAULT_FUNCTION_CFG,
+  DEFAULT_THRESHOLD,
+  DEFAULT_TOTAL
 } from '../chart/chart'
+import { checkViewTitle } from '@/components/canvas/utils/utils'
+import { adaptCurTheme } from '@/components/canvas/utils/style'
 
 export default {
   name: 'Group',
-  components: { TableSelector, GroupMoveSelector, ChartMoveSelector },
+  components: { ChartType, TableSelector, GroupMoveSelector, ChartMoveSelector },
   props: {
     saveStatus: {
       type: Object,
@@ -351,6 +524,11 @@ export default {
       type: String,
       required: false,
       default: null
+    },
+    mountedInit: {
+      type: Boolean,
+      required: false,
+      default: true
     }
   },
   data() {
@@ -415,49 +593,88 @@ export default {
       dsMoveConfirmDisabled: true,
       moveDialogTitle: '',
       isTreeSearch: false,
-      chartGroupTreeAvailable: []
+      chartGroupTreeAvailable: [],
+      createActive: 1,
+      view: {
+        render: 'antv',
+        type: 'table-normal'
+      },
+      renderOptions: [
+        { name: 'AntV', value: 'antv' },
+        { name: 'ECharts', value: 'echarts' }
+      ],
+      searchPids: [], // 查询命中的pid
+      filterText: '',
+      searchType: 'all',
+      searchMap: {
+        all: this.$t('commons.all'),
+        folder: this.$t('commons.folder')
+      },
+      currentViewNodeData: {},
+      currentKey: null,
+      pluginRenderOptions: []
     }
   },
   computed: {
-    // sceneData: function() {
-    //   this.reviewChartList()
-    //   return this.$store.state.chart.chartSceneData
-    // }
+    chartType() {
+      return this.view.type
+    },
+    panelInfo() {
+      return this.$store.state.panel.panelInfo
+    }
   },
   watch: {
-    search(val) {
-      // if (val && val !== '') {
-      //   this.chartData = JSON.parse(JSON.stringify(this.tables.filter(ele => { return ele.name.includes(val) })))
-      // } else {
-      //   this.chartData = JSON.parse(JSON.stringify(this.tables))
-      // }
-      this.$emit('switchComponent', { name: '' })
-      this.tData = []
-      this.expandedArray = []
-      if (this.timer) {
-        clearTimeout(this.timer)
-      }
-      this.timer = setTimeout(() => {
-        this.getTreeData(val)
-      }, (val && val !== '') ? 500 : 0)
-    },
     saveStatus() {
-      this.refreshNodeBy(this.saveStatus.sceneId)
     },
     adviceGroupId() {
       // 仪表板新建视图建议的存放路径
       if (this.optFrom === 'panel') {
         this.currGroup['id'] = this.adviceGroupId
       }
+    },
+    filterText(val) {
+      this.searchPids = []
+      this.$refs.chartTreeRef.filter(val)
+    },
+    searchType(val) {
+      this.searchPids = []
+      this.$refs.chartTreeRef.filter(this.filterText)
+    },
+    chartType(val) {
+      this.view.isPlugin = val && this.$refs['cu-chart-type'] && this.$refs['cu-chart-type'].currentIsPlugin(val)
+    }
+
+  },
+  created() {
+    const plugins = localStorage.getItem('plugin-views') && JSON.parse(localStorage.getItem('plugin-views'))
+    if (plugins) {
+      this.loadPluginType()
+    } else {
+      pluginTypes().then(res => {
+        const plugins = res.data
+        localStorage.setItem('plugin-views', JSON.stringify(plugins))
+        this.loadPluginType()
+      }).catch(e => {
+        localStorage.setItem('plugin-views', null)
+        this.loadPluginType()
+      })
     }
   },
   mounted() {
-    this.treeNode(this.groupForm)
+    if (this.mountedInit) {
+      this.treeNode(true)
+    }
     this.refresh()
-    // this.chartTree()
     this.getChartGroupTree()
   },
   methods: {
+    loadPluginType() {
+      const plugins = localStorage.getItem('plugin-views') && JSON.parse(localStorage.getItem('plugin-views')) || []
+      const pluginOptions = plugins.filter(plugin => !this.renderOptions.some(option => option.value === plugin.render)).map(plugin => {
+        return { name: plugin.render, value: plugin.render }
+      })
+      this.pluginRenderOptions = [...this.renderOptions, ...pluginOptions]
+    },
     clickAdd(param) {
       this.currGroup = param.data
       if (param.type === 'group') {
@@ -480,7 +697,7 @@ export default {
     clickMore(param) {
       switch (param.type) {
         case 'rename':
-          this.add(param.data.type)
+          this.add(param.data.modelInnerType)
           this.groupForm = JSON.parse(JSON.stringify(param.data))
           break
         case 'move':
@@ -535,14 +752,9 @@ export default {
               type: 'success',
               showClose: true
             })
-            this.treeNode(this.groupForm)
+            this.treeNode()
           })
         } else {
-          // this.$message({
-          //   message: this.$t('commons.input_content'),
-          //   type: 'error',
-          //   showClose: true
-          // })
           return false
         }
       })
@@ -552,18 +764,16 @@ export default {
       this.$refs['tableForm'].validate((valid) => {
         if (valid) {
           view.title = view.name
-          post('/chart/view/save', view).then(response => {
+          view.sceneId = view.pid
+          post('/chart/view/save/' + this.panelInfo.id, view).then(response => {
             this.closeTable()
             this.$message({
               message: this.$t('dataset.save_success'),
               type: 'success',
               showClose: true
             })
-            // this.chartTree()
-            this.refreshNodeBy(view.sceneId)
-            // this.$router.push('/chart/home')
+            this.treeNode()
             this.$emit('switchComponent', { name: '' })
-            this.$store.dispatch('chart/setTable', null)
           })
         } else {
           // this.$message({
@@ -588,7 +798,8 @@ export default {
             message: this.$t('chart.delete_success'),
             showClose: true
           })
-          this.treeNode(this.groupForm)
+          this.treeNode()
+          this.$emit('switchComponent', { name: '' })
         })
       }).catch(() => {
       })
@@ -606,9 +817,7 @@ export default {
             message: this.$t('chart.delete_success'),
             showClose: true
           })
-          // this.chartTree()
-          this.refreshNodeBy(data.sceneId)
-          // this.$router.push('/chart/home')
+          this.treeNode()
           this.$emit('switchComponent', { name: '' })
           this.$store.dispatch('chart/setTable', null)
         })
@@ -642,9 +851,32 @@ export default {
       })
     },
 
-    treeNode(group) {
-      post('/chart/group/treeNode', group).then(res => {
-        this.tData = res.data
+    initCurrentNode() {
+      if (this.currentKey) {
+        this.$nextTick(() => {
+          this.$refs.chartTreeRef.setCurrentKey(this.currentKey)
+          this.$nextTick(() => {
+            document.querySelector('.is-current').firstChild.click()
+          })
+        })
+      }
+    },
+    treeNode(cache = false) {
+      const modelInfo = localStorage.getItem('chart-tree')
+      const userCache = (modelInfo && cache)
+      if (userCache) {
+        this.tData = JSON.parse(modelInfo)
+        this.initCurrentNode()
+      }
+      queryAuthModel({ modelType: 'chart' }, !userCache).then(res => {
+        localStorage.setItem('chart-tree', JSON.stringify(res.data))
+        if (!userCache) {
+          this.tData = res.data
+          this.initCurrentNode()
+        }
+        if (this.filterText) {
+          this.$refs.chartTreeRef.filter(this.filterText)
+        }
       })
     },
 
@@ -663,7 +895,8 @@ export default {
     },
 
     nodeClick(data, node) {
-      if (data.type !== 'group') {
+      if (data.modelInnerType !== 'group') {
+        this.currentViewNodeData = data
         this.$emit('switchComponent', { name: 'ChartEdit', param: data })
       }
     },
@@ -699,8 +932,13 @@ export default {
     },
 
     closeCreateChart() {
+      this.createActive = 1
       this.selectTableFlag = false
       this.table = {}
+      this.view = {
+        render: 'antv',
+        type: 'table-normal'
+      }
     },
 
     createChart() {
@@ -720,45 +958,112 @@ export default {
         })
         return
       }
+
+      if (checkViewTitle('new', null, this.chartName)) {
+        this.$message({
+          showClose: true,
+          message: this.$t('chart.title_repeat'),
+          type: 'error'
+        })
+        return
+      }
       const view = {}
       view.name = this.chartName
       view.title = this.chartName
       view.sceneId = this.currGroup.id
       view.tableId = this.table.id
-      view.type = 'bar'
-      view.customAttr = JSON.stringify({
+      view.type = this.view.type
+      view.isPlugin = this.view.isPlugin
+      view.render = this.view.render
+      view.resultMode = 'custom'
+      view.resultCount = 1000
+      const customAttr = {
         color: DEFAULT_COLOR_CASE,
         tableColor: DEFAULT_COLOR_CASE,
         size: DEFAULT_SIZE,
         label: DEFAULT_LABEL,
-        tooltip: DEFAULT_TOOLTIP
-      })
-      view.customStyle = JSON.stringify({
+        tooltip: DEFAULT_TOOLTIP,
+        totalCfg: DEFAULT_TOTAL
+      }
+      const customStyle = {
         text: DEFAULT_TITLE_STYLE,
         legend: DEFAULT_LEGEND_STYLE,
         xAxis: DEFAULT_XAXIS_STYLE,
         yAxis: DEFAULT_YAXIS_STYLE,
-        background: DEFAULT_BACKGROUND_COLOR,
+        yAxisExt: DEFAULT_YAXIS_EXT_STYLE,
         split: DEFAULT_SPLIT
+      }
+      // 新建的视图应用当前主题
+      adaptCurTheme(customStyle, customAttr)
+      view.customAttr = JSON.stringify(customAttr)
+      view.customStyle = JSON.stringify(customStyle)
+      view.senior = JSON.stringify({
+        functionCfg: DEFAULT_FUNCTION_CFG,
+        assistLine: [],
+        threshold: DEFAULT_THRESHOLD
       })
+      view.stylePriority = 'view' // 默认样式优先级视图
       view.xaxis = JSON.stringify([])
+      view.xaxisExt = JSON.stringify([])
       view.yaxis = JSON.stringify([])
+      view.yaxisExt = JSON.stringify([])
       view.extStack = JSON.stringify([])
       view.customFilter = JSON.stringify([])
-      post('/chart/view/save', view).then(response => {
+      view.drillFields = JSON.stringify([])
+      view.extBubble = JSON.stringify([])
+      view.viewFields = JSON.stringify([])
+      this.setChartDefaultOptions(view)
+
+      const _this = this
+      post('/chart/view/newOne/' + this.panelInfo.id, view, true).then(response => {
         this.closeCreateChart()
         this.$store.dispatch('chart/setTableId', null)
         this.$store.dispatch('chart/setTableId', this.table.id)
-        // this.$router.push('/chart/chart-edit')
         if (this.optFrom === 'panel') {
-          this.$emit('newViewInfo', { 'id': response.data.id })
+          this.$emit('newViewInfo', { 'id': response.data.id, 'type': response.data.type })
         } else {
-          this.$emit('switchComponent', { name: 'ChartEdit', param: response.data })
-          // this.$store.dispatch('chart/setViewId', response.data.id)
-          // this.chartTree()
-          this.refreshNodeBy(view.sceneId)
+          _this.expandedArray.push(response.data.sceneId)
+          _this.currentKey = response.data.id
+          _this.treeNode()
         }
       })
+    },
+
+    setChartDefaultOptions(view) {
+      const type = view.type
+      const attr = JSON.parse(view.customAttr)
+      if (type.includes('pie')) {
+        if (view.render === 'echarts') {
+          attr.label.position = 'inside'
+        } else {
+          const customStyle = JSON.parse(view.customStyle)
+          customStyle.legend.show = false
+          view.customStyle = JSON.stringify(customStyle)
+          attr.label.show = true
+          attr.label.position = 'outer'
+        }
+        if (type === 'pie-donut') {
+          attr.size.pieInnerRadius = Math.round(attr.size.pieOuterRadius * 0.75)
+        }
+        if (type === 'pie-donut-rose') {
+          attr.size.pieInnerRadius = Math.round(attr.size.pieOuterRadius * 0.5)
+        }
+      } else if (type.includes('line')) {
+        attr.label.position = 'top'
+      } else if (type.includes('treemap')) {
+        if (view.render === 'echarts') {
+          attr.label.position = 'inside'
+        } else {
+          attr.label.position = 'middle'
+        }
+      } else {
+        if (view.render === 'echarts') {
+          attr.label.position = 'inside'
+        } else {
+          attr.label.position = 'middle'
+        }
+      }
+      view.customAttr = JSON.stringify(attr)
     },
 
     getTable(table) {
@@ -808,22 +1113,6 @@ export default {
       }
     },
 
-    refreshNodeBy(id) {
-      if (this.isTreeSearch) {
-        this.tData = []
-        this.expandedArray = []
-        this.searchTree(this.search)
-      } else {
-        if (!id || id === '0') {
-          this.treeNode(this.groupForm)
-        } else {
-          const node = this.$refs.asyncTree.getNode(id) // 通过节点id找到对应树节点对象
-          node.loaded = false
-          node.expand() // 主动调用展开节点方法，重新查询该节点下的所有子节点
-        }
-      }
-    },
-
     moveTo(data) {
       this.moveGroup = true
       this.moveDialogTitle = this.$t('dataset.m1') + (data.name.length > 10 ? (data.name.substr(0, 10) + '...') : data.name) + this.$t('dataset.m2')
@@ -843,8 +1132,7 @@ export default {
       this.groupForm.pid = this.tGroup.id
       post('/chart/group/save', this.groupForm).then(res => {
         this.closeMoveGroup()
-        // this.tree(this.groupForm)
-        this.refreshNodeBy(this.groupForm.pid)
+        this.treeNode()
       })
     },
     targetGroup(val) {
@@ -868,14 +1156,12 @@ export default {
       }
     },
     saveMoveDs() {
-      // if (this.tDs && this.tDs.type === 'group') {
-      //   return
-      // }
-      this.dsForm.sceneId = this.tDs.id
-      post('/chart/view/save', this.dsForm).then(res => {
+      const newSceneId = this.tDs.id
+      this.dsForm.sceneId = newSceneId
+      post('/chart/view/save/' + this.panelInfo.id, this.dsForm).then(res => {
         this.closeMoveDs()
-        // this.tableTree()
-        this.refreshNodeBy(this.dsForm.sceneId)
+        this.expandedArray.push(newSceneId)
+        this.treeNode()
       })
     },
     targetDs(val) {
@@ -884,68 +1170,6 @@ export default {
         this.dsMoveConfirmDisabled = false
       } else {
         this.dsMoveConfirmDisabled = false
-      }
-    },
-
-    searchTree(val) {
-      const queryCondition = {
-        withExtend: 'parent',
-        modelType: 'chart',
-        name: val
-      }
-      authModel(queryCondition).then(res => {
-        // this.highlights(res.data)
-        this.tData = this.buildTree(res.data)
-        // console.log(this.tData)
-      })
-    },
-
-    buildTree(arrs) {
-      const idMapping = arrs.reduce((acc, el, i) => {
-        acc[el[this.treeProps.id]] = i
-        return acc
-      }, {})
-      const roots = []
-      arrs.forEach(el => {
-        // 判断根节点 ###
-        el.type = el.modelInnerType
-        el.isLeaf = el.leaf
-        if (el[this.treeProps.parentId] === null || el[this.treeProps.parentId] === 0 || el[this.treeProps.parentId] === '0') {
-          roots.push(el)
-          return
-        }
-        // 用映射表找到父元素
-        const parentEl = arrs[idMapping[el[this.treeProps.parentId]]]
-        // 把当前元素添加到父元素的`children`数组中
-        parentEl.children = [...(parentEl.children || []), el]
-
-        // 设置展开节点 如果没有子节点则不进行展开
-        if (parentEl.children.length > 0) {
-          this.expandedArray.push(parentEl[this.treeProps.id])
-        }
-      })
-      return roots
-    },
-
-    // 高亮显示搜索内容
-    highlights(data) {
-      if (data && this.search && this.search.length > 0) {
-        const replaceReg = new RegExp(this.search, 'g')// 匹配关键字正则
-        const replaceString = '<span style="color: #0a7be0">' + this.search + '</span>' // 高亮替换v-html值
-        data.forEach(item => {
-          item.name = item.name.replace(replaceReg, replaceString) // 开始替换
-          item.label = item.label.replace(replaceReg, replaceString) // 开始替换
-        })
-      }
-    },
-
-    getTreeData(val) {
-      if (val) {
-        this.isTreeSearch = true
-        this.searchTree(val)
-      } else {
-        this.isTreeSearch = false
-        this.treeNode(this.groupForm)
       }
     },
 
@@ -958,6 +1182,43 @@ export default {
       // 去掉children=null的属性
       if (node.children === null || node.children === 'null') {
         delete node.children
+      }
+    },
+
+    createPreview() {
+      if (this.createActive > 1) {
+        this.createActive--
+      }
+    },
+    createNext() {
+      if (this.createActive < 2) {
+        this.createActive++
+      }
+    },
+    filterNode(value, data) {
+      if (!value) return true
+      if (this.searchType === 'folder') {
+        if (data.modelInnerType === 'group' && data.label.indexOf(value) !== -1) {
+          this.searchPids.push(data.id)
+          return true
+        }
+        if (this.searchPids.indexOf(data.pid) !== -1) {
+          if (data.modelInnerType === 'group') {
+            this.searchPids.push(data.id)
+          }
+          return true
+        }
+      } else {
+        return data.label.indexOf(value) !== -1
+      }
+      return false
+    },
+    searchTypeClick(searchTypeInfo) {
+      this.searchType = searchTypeInfo
+    },
+    nodeTypeChange(newType) {
+      if (this.currentViewNodeData) {
+        this.currentViewNodeData.modelInnerType = newType
       }
     }
   }
@@ -973,7 +1234,7 @@ export default {
     padding: 12px 0;
   }
 
-  .custom-tree-container{
+  .custom-tree-container {
     margin-top: 10px;
   }
 
@@ -983,7 +1244,7 @@ export default {
     align-items: center;
     justify-content: space-between;
     font-size: 14px;
-    padding-right:8px;
+    padding-right: 8px;
   }
 
   .custom-tree-node-list {
@@ -992,10 +1253,10 @@ export default {
     align-items: center;
     justify-content: space-between;
     font-size: 14px;
-    padding:0 8px;
+    padding: 0 8px;
   }
 
-  .tree-list>>>.el-tree-node__expand-icon.is-leaf{
+  .tree-list ::v-deep .el-tree-node__expand-icon.is-leaf {
     display: none;
   }
 
@@ -1019,45 +1280,81 @@ export default {
     line-height: 26px;
   }
 
-  .dialog-css >>> .el-dialog__header {
+  .dialog-css ::v-deep .el-dialog__header {
     padding: 20px 20px 0;
   }
 
-  .dialog-css >>> .el-dialog__body {
+  .dialog-css ::v-deep .el-dialog__body {
     padding: 10px 20px 20px;
   }
 
-  .form-item>>>.el-form-item__label{
+  .form-item ::v-deep .el-form-item__label {
     font-size: 12px;
   }
 
-  .scene-title{
+  .scene-title {
     width: 100%;
     display: flex;
   }
-  .scene-title-name{
+
+  .scene-title-name {
     width: 100%;
     overflow: hidden;
     display: inline-block;
     white-space: nowrap;
     text-overflow: ellipsis;
   }
+
   .father .child {
-    display: none;
+    /*display: none;*/
+    visibility: hidden;
   }
+
   .father:hover .child {
-    display: inline;
+    /*display: inline;*/
+    visibility: visible;
   }
+
   .tree-style {
     padding: 10px 15px;
     height: 100%;
     overflow-y: auto;
   }
-  /deep/ .vue-treeselect__control{
+
+  /deep/ .vue-treeselect__control {
     height: 28px;
   }
-  /deep/ .vue-treeselect__single-value{
-    color:#606266;
-    line-height: 28px!important;
+
+  /deep/ .vue-treeselect__single-value {
+    color: #606266;
+    line-height: 28px !important;
+  }
+
+  .render-select ::v-deep .el-input__suffix {
+    width: 20px;
+  }
+
+  .render-select ::v-deep .el-input__inner {
+    padding-right: 10px;
+    padding-left: 6px;
+  }
+
+  .dialog-css ::v-deep .el-step__title {
+    font-weight: 400;
+    font-size: 12px;
+  }
+
+  .chart-icon {
+    width: 200px;
+    height: 200px;
+  }
+
+  .chart-box {
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    width: 50%;
+    float: left;
+    height: 380px;
   }
 </style>

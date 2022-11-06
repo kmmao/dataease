@@ -43,6 +43,15 @@ export function addTable(data) {
   })
 }
 
+export function alter(data) {
+  return request({
+    url: '/dataset/table/alter',
+    method: 'post',
+    loading: true,
+    data
+  })
+}
+
 export function delTable(tableId) {
   return request({
     url: '/dataset/table/delete/' + tableId,
@@ -60,6 +69,15 @@ export function groupTree(data) {
   })
 }
 
+export function dsGroupTree(data) {
+  return request({
+    url: '/dataset/group/tree',
+    method: 'post',
+    loading: true,
+    data
+  })
+}
+
 export function listDatasource() {
   return request({
     url: '/datasource/list',
@@ -68,10 +86,18 @@ export function listDatasource() {
   })
 }
 
+export function listApiDatasource() {
+  return request({
+    url: '/datasource/list/api',
+    loading: true,
+    method: 'get'
+  })
+}
+
 export function getTable(id, hideMsg = false) {
   return request({
     url: '/dataset/table/get/' + id,
-    loading: true,
+    loading: false,
     method: 'post',
     hideMsg: hideMsg
   })
@@ -94,6 +120,14 @@ export function fieldList(id, showLoading = true) {
   })
 }
 
+export function fieldListWithPermission(id, showLoading = true) {
+  return request({
+    url: '/dataset/field/listWithPermission/' + id,
+    loading: showLoading,
+    method: 'post'
+  })
+}
+
 export function fieldListDQ(id, showLoading = true) {
   return request({
     url: '/dataset/field/listByDQ/' + id,
@@ -111,21 +145,49 @@ export function batchEdit(data) {
   })
 }
 
-export function post(url, data, showLoading = true, timeout = 10000) {
+export function post(url, data, showLoading = true, timeout = 60000, hideMsg) {
   return request({
     url: url,
     method: 'post',
     loading: showLoading,
-    timeout: timeout,
+    hideMsg,
     data
   })
 }
 
-export function fieldValues(fieldId) {
+export function mappingFieldValues(data) {
   return request({
-    url: '/dataset/field/fieldValues/' + fieldId,
+    url: '/dataset/field/mappingFieldValues',
     method: 'post',
-    loading: true
+    loading: true,
+    data
+  })
+}
+
+export function linkMappingFieldValues(data) {
+  return request({
+    url: '/dataset/field/linkMappingFieldValues',
+    method: 'post',
+    loading: true,
+    data
+  })
+}
+
+export function multFieldValues(data) {
+  return request({
+    url: '/dataset/field/multFieldValues',
+    method: 'post',
+    loading: true,
+    data
+  })
+}
+
+export function linkMultFieldValues(data) {
+  return request({
+    url: '/dataset/field/linkMultFieldValues',
+    method: 'post',
+    loading: true,
+    data
   })
 }
 
@@ -141,6 +203,7 @@ export function taskList(spage, size, data) {
   return request({
     url: '/dataset/group/isKettleRunning',
     method: 'post',
+    // eslint-disable-next-line no-undef
     loading: showLoading
   })
 }
@@ -154,4 +217,36 @@ export function datasetTaskList(page, size, data, loading) {
   })
 }
 
-export default { loadTable, getScene, addGroup, delGroup, addTable, delTable, groupTree }
+export function datasetRowPermissionsList(datasetId, page, size, data, loading) {
+  return request({
+    url: 'plugin/dataset/rowPermissions/pageList/' + datasetId + '/' + page + '/' + size,
+    method: 'post',
+    data,
+    loading: loading
+  })
+}
+
+export function checkCustomDs() {
+  return request({
+    url: '/system/checkCustomDs',
+    method: 'post',
+    loading: true
+  })
+}
+export function exportExcel(data) {
+  return request({
+    url: '/dataset/taskLog/export',
+    method: 'post',
+    loading: true,
+    responseType: 'blob',
+    data
+  })
+}
+
+export function dsTable(page, size, id) {
+  return request({
+    url: '/datasource/getTables/' + id + '/' + page + '/' + size,
+    method: 'post'
+  })
+}
+export default { loadTable, getScene, addGroup, delGroup, addTable, delTable, groupTree, checkCustomDs }

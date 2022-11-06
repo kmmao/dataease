@@ -1,14 +1,14 @@
 package io.dataease.service.panel;
 
-import io.dataease.base.domain.PanelStore;
-import io.dataease.base.domain.PanelStoreExample;
-import io.dataease.base.mapper.PanelStoreMapper;
-import io.dataease.base.mapper.ext.ExtPanelStoreMapper;
-import io.dataease.base.mapper.ext.query.GridExample;
+import io.dataease.ext.ExtPanelStoreMapper;
+import io.dataease.ext.query.GridExample;
 import io.dataease.commons.utils.AuthUtils;
 import io.dataease.controller.sys.base.BaseGridRequest;
 import io.dataease.controller.sys.base.ConditionEntity;
 import io.dataease.dto.panel.PanelStoreDto;
+import io.dataease.plugins.common.base.domain.PanelStore;
+import io.dataease.plugins.common.base.domain.PanelStoreExample;
+import io.dataease.plugins.common.base.mapper.PanelStoreMapper;
 import org.springframework.stereotype.Service;
 
 import javax.annotation.Resource;
@@ -40,16 +40,6 @@ public class StoreService {
         panelStoreMapper.deleteByExample(panelStoreExample);
     }
 
-    /*public void remove(Long storeId) {
-        panelStoreMapper.deleteByPrimaryKey(storeId);
-    }*/
-
-    /**
-     * 按照当前用户ID查询收藏仪表板
-     *
-     * @param request
-     * @return
-     */
     public List<PanelStoreDto> query(BaseGridRequest request) {
         Long userId = AuthUtils.getUser().getUserId();
         ConditionEntity condition = new ConditionEntity();
@@ -60,8 +50,14 @@ public class StoreService {
             add(condition);
         }});
         GridExample example = request.convertExample();
-        List<PanelStoreDto> stores = extPanelStoreMapper.query(example);
-        return stores;
+        return extPanelStoreMapper.query(example);
     }
+
+    public Long count(String panelId) {
+        PanelStoreExample example = new PanelStoreExample();
+        example.createCriteria().andUserIdEqualTo(AuthUtils.getUser().getUserId()).andPanelGroupIdEqualTo(panelId);
+        return panelStoreMapper.countByExample(example);
+    }
+
 
 }

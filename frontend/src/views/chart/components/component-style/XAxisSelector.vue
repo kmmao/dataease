@@ -1,160 +1,370 @@
 <template>
   <div style="width: 100%">
     <el-col>
-      <el-form ref="axisForm" :model="axisForm" label-width="80px" size="mini" :disabled="!hasDataPermission('manage',param.privileges)">
-        <el-form-item :label="$t('chart.show')" class="form-item">
-          <el-checkbox v-model="axisForm.show" @change="changeXAxisStyle">{{ $t('chart.show') }}</el-checkbox>
+      <el-form
+        ref="axisForm"
+        :model="axisForm"
+        label-width="80px"
+        size="mini"
+      >
+        <el-form-item
+          v-show="showProperty('show')"
+          :label="$t('chart.show')"
+          class="form-item"
+        >
+          <el-checkbox
+            v-model="axisForm.show"
+            @change="changeXAxisStyle('show')"
+          >{{ $t('chart.show') }}</el-checkbox>
         </el-form-item>
         <div v-show="axisForm.show">
-          <el-form-item :label="$t('chart.position')" class="form-item">
-            <el-radio-group v-model="axisForm.position" size="mini" @change="changeXAxisStyle">
+          <el-form-item
+            v-show="showProperty('position')"
+            :label="$t('chart.position')"
+            class="form-item"
+          >
+            <el-radio-group
+              v-model="axisForm.position"
+              size="mini"
+              @change="changeXAxisStyle('position')"
+            >
               <el-radio-button label="top">{{ $t('chart.text_pos_top') }}</el-radio-button>
               <el-radio-button label="bottom">{{ $t('chart.text_pos_bottom') }}</el-radio-button>
             </el-radio-group>
           </el-form-item>
-          <el-form-item :label="$t('chart.name')" class="form-item">
-            <el-input v-model="axisForm.name" size="mini" @blur="changeXAxisStyle" />
+          <el-form-item
+            v-show="showProperty('name')"
+            :label="$t('chart.name')"
+            class="form-item"
+          >
+            <el-input
+              v-model="axisForm.name"
+              size="mini"
+              @blur="changeXAxisStyle('name')"
+            />
           </el-form-item>
-          <el-form-item :label="$t('chart.axis_name_color')" class="form-item">
-            <el-color-picker v-model="axisForm.nameTextStyle.color" class="color-picker-style" @change="changeXAxisStyle" />
+          <el-form-item
+            v-show="showProperty('nameTextStyle')"
+            :label="$t('chart.axis_name_color')"
+            class="form-item"
+          >
+            <el-color-picker
+              v-model="axisForm.nameTextStyle.color"
+              class="color-picker-style"
+              :predefine="predefineColors"
+              @change="changeXAxisStyle('nameTextStyle')"
+            />
           </el-form-item>
-          <el-form-item :label="$t('chart.axis_name_fontsize')" class="form-item">
-            <el-select v-model="axisForm.nameTextStyle.fontSize" :placeholder="$t('chart.axis_name_fontsize')" @change="changeXAxisStyle">
-              <el-option v-for="option in fontSize" :key="option.value" :label="option.name" :value="option.value" />
+          <el-form-item
+            v-show="showProperty('nameTextStyle')"
+            :label="$t('chart.axis_name_fontsize')"
+            class="form-item"
+          >
+            <el-select
+              v-model="axisForm.nameTextStyle.fontSize"
+              :placeholder="$t('chart.axis_name_fontsize')"
+              @change="changeXAxisStyle('nameTextStyle')"
+            >
+              <el-option
+                v-for="option in fontSize"
+                :key="option.value"
+                :label="option.name"
+                :value="option.value"
+              />
             </el-select>
           </el-form-item>
-          <el-divider />
-          <el-form-item :label="$t('chart.axis_show')" class="form-item">
-            <el-checkbox v-model="axisForm.splitLine.show" @change="changeXAxisStyle">{{ $t('chart.axis_show') }}</el-checkbox>
+          <span v-show="showProperty('axisValue')">
+            <el-divider />
+            <el-form-item class="form-item">
+              <span slot="label">
+                <span class="span-box">
+                  <span>{{ $t('chart.axis_value') }}</span>
+                  <el-tooltip
+                    class="item"
+                    effect="dark"
+                    placement="bottom"
+                  >
+                    <div slot="content">
+                      最小值、最大值、间隔均为数值类型；若不填，则该项视为自动。
+                      <br>
+                      请确保填写数值能正确计算，否则将无法正常显示轴值。
+                    </div>
+                    <i
+                      class="el-icon-info"
+                      style="cursor: pointer;"
+                    />
+                  </el-tooltip>
+                </span>
+              </span>
+              <el-checkbox
+                v-model="axisForm.axisValue.auto"
+                @change="changeXAxisStyle('axisValue')"
+              >{{ $t('chart.axis_auto') }}</el-checkbox>
+            </el-form-item>
+            <span v-show="!axisForm.axisValue.auto">
+              <el-form-item
+                :label="$t('chart.axis_value_min')"
+                class="form-item"
+              >
+                <el-input
+                  v-model="axisForm.axisValue.min"
+                  @blur="changeXAxisStyle('axisValue')"
+                />
+              </el-form-item>
+              <el-form-item
+                :label="$t('chart.axis_value_max')"
+                class="form-item"
+              >
+                <el-input
+                  v-model="axisForm.axisValue.max"
+                  @blur="changeXAxisStyle('axisValue')"
+                />
+              </el-form-item>
+              <el-form-item
+                :label="$t('chart.axis_value_split')"
+                class="form-item"
+              >
+                <span slot="label">
+                  <span class="span-box">
+                    <span>{{ $t('chart.axis_value_split_space') }}</span>
+                    <el-tooltip
+                      class="item"
+                      effect="dark"
+                      placement="bottom"
+                    >
+                      <div slot="content">
+                        间隔表示两个刻度之间的单位长度。
+                      </div>
+                      <i
+                        class="el-icon-info"
+                        style="cursor: pointer;"
+                      />
+                    </el-tooltip>
+                  </span>
+                </span>
+                <el-input
+                  v-model="axisForm.axisValue.split"
+                  @blur="changeXAxisStyle('axisValue')"
+                />
+              </el-form-item>
+            </span>
+          </span>
+          <el-divider v-if="showProperty('splitLine')" />
+          <el-form-item
+            v-show="showProperty('splitLine')"
+            :label="$t('chart.axis_show')"
+            class="form-item"
+          >
+            <el-checkbox
+              v-model="axisForm.axisLine.show"
+              @change="changeXAxisStyle('axisLine')"
+            >{{ $t('chart.axis_show') }}</el-checkbox>
           </el-form-item>
-          <span v-show="axisForm.splitLine.show">
-            <el-form-item :label="$t('chart.axis_color')" class="form-item">
-              <el-color-picker v-model="axisForm.splitLine.lineStyle.color" class="el-color-picker" @change="changeXAxisStyle" />
+          <el-form-item
+            v-show="showProperty('splitLine')"
+            :label="$t('chart.grid_show')"
+            class="form-item"
+          >
+            <el-checkbox
+              v-model="axisForm.splitLine.show"
+              @change="changeXAxisStyle('splitLine')"
+            >{{ $t('chart.grid_show') }}</el-checkbox>
+          </el-form-item>
+          <span v-show="showProperty('splitLine') && axisForm.splitLine.show">
+            <el-form-item
+              :label="$t('chart.grid_color')"
+              class="form-item"
+            >
+              <el-color-picker
+                v-model="axisForm.splitLine.lineStyle.color"
+                class="el-color-picker"
+                :predefine="predefineColors"
+                @change="changeXAxisStyle('splitLine')"
+              />
             </el-form-item>
-            <el-form-item :label="$t('chart.axis_width')" class="form-item form-item-slider">
-              <el-slider v-model="axisForm.splitLine.lineStyle.width" :min="1" :max="10" show-input :show-input-controls="false" input-size="mini" @change="changeXAxisStyle" />
+            <el-form-item
+              :label="$t('chart.grid_width')"
+              class="form-item form-item-slider"
+            >
+              <el-slider
+                v-model="axisForm.splitLine.lineStyle.width"
+                :min="1"
+                :max="10"
+                show-input
+                :show-input-controls="false"
+                input-size="mini"
+                @change="changeXAxisStyle('splitLine')"
+              />
             </el-form-item>
-            <el-form-item :label="$t('chart.axis_type')" class="form-item">
-              <el-radio-group v-model="axisForm.splitLine.lineStyle.type" size="mini" @change="changeXAxisStyle">
+            <el-form-item
+              :label="$t('chart.grid_type')"
+              class="form-item"
+            >
+              <el-radio-group
+                v-model="axisForm.splitLine.lineStyle.type"
+                size="mini"
+                @change="changeXAxisStyle('splitLine')"
+              >
                 <el-radio-button label="solid">{{ $t('chart.axis_type_solid') }}</el-radio-button>
                 <el-radio-button label="dashed">{{ $t('chart.axis_type_dashed') }}</el-radio-button>
                 <el-radio-button label="dotted">{{ $t('chart.axis_type_dotted') }}</el-radio-button>
               </el-radio-group>
             </el-form-item>
           </span>
-          <el-divider />
-          <el-form-item :label="$t('chart.axis_label_show')" class="form-item">
-            <el-checkbox v-model="axisForm.axisLabel.show" @change="changeXAxisStyle">{{ $t('chart.axis_label_show') }}</el-checkbox>
+          <el-divider v-if="showProperty('axisLabel')" />
+          <el-form-item
+            v-show="showProperty('axisLabel')"
+            :label="$t('chart.axis_label_show')"
+            class="form-item"
+          >
+            <el-checkbox
+              v-model="axisForm.axisLabel.show"
+              @change="changeXAxisStyle('axisLabel')"
+            >{{ $t('chart.axis_label_show') }}</el-checkbox>
           </el-form-item>
-          <span v-show="axisForm.axisLabel.show">
-            <el-form-item :label="$t('chart.axis_label_color')" class="form-item">
-              <el-color-picker v-model="axisForm.axisLabel.color" class="el-color-picker" @change="changeXAxisStyle" />
+          <span v-show="showProperty('axisLabel') && axisForm.axisLabel.show">
+            <el-form-item
+              :label="$t('chart.axis_label_color')"
+              class="form-item"
+            >
+              <el-color-picker
+                v-model="axisForm.axisLabel.color"
+                class="el-color-picker"
+                :predefine="predefineColors"
+                @change="changeXAxisStyle('axisLabel')"
+              />
             </el-form-item>
-            <el-form-item :label="$t('chart.axis_label_rotate')" class="form-item form-item-slider">
-              <el-slider v-model="axisForm.axisLabel.rotate" show-input :show-input-controls="false" :min="-90" :max="90" input-size="mini" @change="changeXAxisStyle" />
+            <el-form-item
+              :label="$t('chart.axis_label_rotate')"
+              class="form-item form-item-slider"
+            >
+              <el-slider
+                v-model="axisForm.axisLabel.rotate"
+                show-input
+                :show-input-controls="false"
+                :min="-90"
+                :max="90"
+                input-size="mini"
+                @change="changeXAxisStyle('axisLabel')"
+              />
             </el-form-item>
-            <el-form-item :label="$t('chart.axis_label_fontsize')" class="form-item">
-              <el-select v-model="axisForm.axisLabel.fontSize" :placeholder="$t('chart.axis_label_fontsize')" @change="changeXAxisStyle">
-                <el-option v-for="option in fontSize" :key="option.value" :label="option.name" :value="option.value" />
+            <el-form-item
+              :label="$t('chart.axis_label_fontsize')"
+              class="form-item"
+            >
+              <el-select
+                v-model="axisForm.axisLabel.fontSize"
+                :placeholder="$t('chart.axis_label_fontsize')"
+                @change="changeXAxisStyle('axisLabel')"
+              >
+                <el-option
+                  v-for="option in fontSize"
+                  :key="option.value"
+                  :label="option.name"
+                  :value="option.value"
+                />
               </el-select>
             </el-form-item>
+
+            <span v-show="chart.type && chart.type.includes('horizontal')">
+              <el-form-item
+                :label="$t('chart.value_formatter_type')"
+                class="form-item"
+              >
+                <el-select
+                  v-model="axisForm.axisLabelFormatter.type"
+                  @change="changeXAxisStyle('axisLabelFormatter')"
+                >
+                  <el-option
+                    v-for="type in typeList"
+                    :key="type.value"
+                    :label="$t('chart.' + type.name)"
+                    :value="type.value"
+                  />
+                </el-select>
+              </el-form-item>
+
+              <el-form-item
+                v-show="axisForm.axisLabelFormatter.type !== 'auto'"
+                :label="$t('chart.value_formatter_decimal_count')"
+                class="form-item"
+              >
+                <el-input-number
+                  v-model="axisForm.axisLabelFormatter.decimalCount"
+                  :precision="0"
+                  :min="0"
+                  :max="10"
+                  size="mini"
+                  @change="changeXAxisStyle('axisLabelFormatter')"
+                />
+              </el-form-item>
+
+              <el-form-item
+                v-show="axisForm.axisLabelFormatter.type !== 'percent'"
+                :label="$t('chart.value_formatter_unit')"
+                class="form-item"
+              >
+                <el-select
+                  v-model="axisForm.axisLabelFormatter.unit"
+                  :placeholder="$t('chart.pls_select_field')"
+                  size="mini"
+                  @change="changeXAxisStyle('axisLabelFormatter')"
+                >
+                  <el-option
+                    v-for="item in unitList"
+                    :key="item.value"
+                    :label="$t('chart.' + item.name)"
+                    :value="item.value"
+                  />
+                </el-select>
+              </el-form-item>
+
+              <el-form-item
+                :label="$t('chart.value_formatter_suffix')"
+                class="form-item"
+              >
+                <el-input
+                  v-model="axisForm.axisLabelFormatter.suffix"
+                  size="mini"
+                  clearable
+                  :placeholder="$t('commons.input_content')"
+                  @change="changeXAxisStyle('axisLabelFormatter')"
+                />
+              </el-form-item>
+
+              <el-form-item
+                :label="$t('chart.value_formatter_thousand_separator')"
+                class="form-item"
+              >
+                <el-checkbox
+                  v-model="axisForm.axisLabelFormatter.thousandSeparator"
+                  @change="changeXAxisStyle('axisLabelFormatter')"
+                />
+              </el-form-item>
+            </span>
           </span>
-          <el-divider />
-          <el-form-item :label="$t('chart.content_formatter')" class="form-item">
-            <el-input v-model="axisForm.axisLabel.formatter" type="textarea" :autosize="{ minRows: 4, maxRows: 4}" @blur="changeXAxisStyle" />
+          <el-divider v-if="showProperty('axisLabel')" />
+          <el-form-item
+            v-show="showProperty('axisLabel')"
+            :label="$t('chart.content_formatter')"
+            class="form-item"
+          >
+            <el-input
+              v-model="axisForm.axisLabel.formatter"
+              type="textarea"
+              :autosize="{ minRows: 4, maxRows: 4}"
+              @blur="changeXAxisStyle('axisLabel')"
+            />
           </el-form-item>
         </div>
       </el-form>
     </el-col>
-    <!--    <div style="width: 100%">-->
-    <!--      <el-popover-->
-    <!--        v-model="isSetting"-->
-    <!--        placement="right"-->
-    <!--        width="400"-->
-    <!--        trigger="click"-->
-    <!--      >-->
-    <!--        <el-col>-->
-    <!--          <el-form ref="axisForm" :model="axisForm" label-width="80px" size="mini">-->
-    <!--            &lt;!&ndash;            <el-form-item :label="$t('chart.show')" class="form-item">&ndash;&gt;-->
-    <!--            &lt;!&ndash;              <el-checkbox v-model="axisForm.show" @change="changeXAxisStyle">{{ $t('chart.show') }}</el-checkbox>&ndash;&gt;-->
-    <!--            &lt;!&ndash;            </el-form-item>&ndash;&gt;-->
-    <!--            <el-form-item :label="$t('chart.position')" class="form-item">-->
-    <!--              <el-radio-group v-model="axisForm.position" size="mini" @change="changeXAxisStyle">-->
-    <!--                <el-radio-button label="top">{{ $t('chart.text_pos_top') }}</el-radio-button>-->
-    <!--                <el-radio-button label="bottom">{{ $t('chart.text_pos_bottom') }}</el-radio-button>-->
-    <!--              </el-radio-group>-->
-    <!--            </el-form-item>-->
-    <!--            <el-form-item :label="$t('chart.name')" class="form-item">-->
-    <!--              <el-input v-model="axisForm.name" size="mini" @blur="changeXAxisStyle" />-->
-    <!--            </el-form-item>-->
-    <!--            <el-form-item :label="$t('chart.rotate')" class="form-item form-item-slider">-->
-    <!--              <el-slider v-model="axisForm.axisLabel.rotate" show-input :show-input-controls="false" :min="-90" :max="90" input-size="mini" @change="changeXAxisStyle" />-->
-    <!--            </el-form-item>-->
-    <!--            <el-form-item :label="$t('chart.axis_name_color')" class="form-item">-->
-    <!--              <colorPicker v-model="axisForm.nameTextStyle.color" style="margin-top: 6px;cursor: pointer;z-index: 1004;border: solid 1px black" @change="changeXAxisStyle" />-->
-    <!--            </el-form-item>-->
-    <!--            <el-form-item :label="$t('chart.axis_name_fontsize')" class="form-item form-item-slider">-->
-    <!--              <el-select v-model="axisForm.nameTextStyle.fontSize" :placeholder="$t('chart.axis_name_fontsize')" @change="changeXAxisStyle">-->
-    <!--                <el-option v-for="option in fontSize" :key="option.value" :label="option.name" :value="option.value" />-->
-    <!--              </el-select>-->
-    <!--            </el-form-item>-->
-    <!--            <el-divider />-->
-    <!--            <el-form-item :label="$t('chart.axis_show')" class="form-item">-->
-    <!--              <el-checkbox v-model="axisForm.splitLine.show" @change="changeXAxisStyle">{{ $t('chart.axis_show') }}</el-checkbox>-->
-    <!--            </el-form-item>-->
-    <!--            <span v-show="axisForm.splitLine.show">-->
-    <!--              <el-form-item :label="$t('chart.axis_color')" class="form-item">-->
-    <!--                <colorPicker v-model="axisForm.splitLine.lineStyle.color" style="margin-top: 6px;cursor: pointer;z-index: 1004;border: solid 1px black" @change="changeXAxisStyle" />-->
-    <!--              </el-form-item>-->
-    <!--              <el-form-item :label="$t('chart.axis_width')" class="form-item form-item-slider">-->
-    <!--                <el-slider v-model="axisForm.splitLine.lineStyle.width" :min="1" :max="10" show-input :show-input-controls="false" input-size="mini" @change="changeXAxisStyle" />-->
-    <!--              </el-form-item>-->
-    <!--              <el-form-item :label="$t('chart.axis_type')" class="form-item">-->
-    <!--                <el-radio-group v-model="axisForm.splitLine.lineStyle.type" size="mini" @change="changeXAxisStyle">-->
-    <!--                  <el-radio-button label="solid">{{ $t('chart.axis_type_solid') }}</el-radio-button>-->
-    <!--                  <el-radio-button label="dashed">{{ $t('chart.axis_type_dashed') }}</el-radio-button>-->
-    <!--                  <el-radio-button label="dotted">{{ $t('chart.axis_type_dotted') }}</el-radio-button>-->
-    <!--                </el-radio-group>-->
-    <!--              </el-form-item>-->
-    <!--            </span>-->
-    <!--            <el-divider />-->
-    <!--            <el-form-item :label="$t('chart.axis_label_show')" class="form-item">-->
-    <!--              <el-checkbox v-model="axisForm.axisLabel.show" @change="changeXAxisStyle">{{ $t('chart.axis_label_show') }}</el-checkbox>-->
-    <!--            </el-form-item>-->
-    <!--            <span v-show="axisForm.axisLabel.show">-->
-    <!--              <el-form-item :label="$t('chart.axis_label_color')" class="form-item">-->
-    <!--                <colorPicker v-model="axisForm.axisLabel.color" style="margin-top: 6px;cursor: pointer;z-index: 1004;border: solid 1px black" @change="changeXAxisStyle" />-->
-    <!--              </el-form-item>-->
-    <!--              <el-form-item :label="$t('chart.axis_label_fontsize')" class="form-item form-item-slider">-->
-    <!--                <el-select v-model="axisForm.axisLabel.fontSize" :placeholder="$t('chart.axis_label_fontsize')" @change="changeXAxisStyle">-->
-    <!--                  <el-option v-for="option in fontSize" :key="option.value" :label="option.name" :value="option.value" />-->
-    <!--                </el-select>-->
-    <!--              </el-form-item>-->
-    <!--            </span>-->
-    <!--            <el-divider />-->
-    <!--            <el-form-item :label="$t('chart.content_formatter')" class="form-item">-->
-    <!--              <el-input v-model="axisForm.axisLabel.formatter" type="textarea" :autosize="{ minRows: 4, maxRows: 4}" @blur="changeXAxisStyle" />-->
-    <!--            </el-form-item>-->
-    <!--          </el-form>-->
-    <!--        </el-col>-->
-
-    <!--        <el-button slot="reference" size="mini" class="shape-item" :disabled="!axisForm.show || !hasDataPermission('manage',param.privileges)">-->
-    <!--          {{ $t('chart.xAxis') }}<i class="el-icon-setting el-icon&#45;&#45;right" />-->
-    <!--          <el-switch-->
-    <!--            v-model="axisForm.show"-->
-    <!--            :disabled="!hasDataPermission('manage',param.privileges)"-->
-    <!--            class="switch-style"-->
-    <!--            @click.stop.native-->
-    <!--            @change="changeXAxisStyle"-->
-    <!--          />-->
-    <!--        </el-button>-->
-    <!--      </el-popover>-->
-    <!--    </div>-->
   </div>
 </template>
 
 <script>
-import { DEFAULT_XAXIS_STYLE } from '../../chart/chart'
+import { COLOR_PANEL, DEFAULT_XAXIS_STYLE } from '../../chart/chart'
+import { formatterType, unitList } from '@/views/chart/chart/formatter'
 
 export default {
   name: 'XAxisSelector',
@@ -166,13 +376,23 @@ export default {
     chart: {
       type: Object,
       required: true
+    },
+    propertyInner: {
+      type: Array,
+      required: false,
+      default: function() {
+        return []
+      }
     }
   },
   data() {
     return {
       axisForm: JSON.parse(JSON.stringify(DEFAULT_XAXIS_STYLE)),
       isSetting: false,
-      fontSize: []
+      fontSize: [],
+      predefineColors: COLOR_PANEL,
+      typeList: formatterType,
+      unitList: unitList
     }
   },
   watch: {
@@ -204,6 +424,15 @@ export default {
           if (!this.axisForm.nameTextStyle) {
             this.axisForm.nameTextStyle = JSON.parse(JSON.stringify(DEFAULT_XAXIS_STYLE.nameTextStyle))
           }
+          if (!this.axisForm.axisValue) {
+            this.axisForm.axisValue = JSON.parse(JSON.stringify(DEFAULT_XAXIS_STYLE.axisValue))
+          }
+          if (!this.axisForm.axisLabelFormatter) {
+            this.axisForm.axisLabelFormatter = JSON.parse(JSON.stringify(DEFAULT_XAXIS_STYLE.axisLabelFormatter))
+          }
+          if (!this.axisForm.axisLine) {
+            this.axisForm.axisLine = JSON.parse(JSON.stringify(DEFAULT_XAXIS_STYLE.axisLine))
+          }
         }
       }
     },
@@ -217,11 +446,15 @@ export default {
       }
       this.fontSize = arr
     },
-    changeXAxisStyle() {
+    changeXAxisStyle(modifyName) {
       if (!this.axisForm.show) {
         this.isSetting = false
       }
+      this.axisForm['modifyName'] = modifyName
       this.$emit('onChangeXAxisForm', this.axisForm)
+    },
+    showProperty(property) {
+      return this.propertyInner.includes(property)
     }
   }
 }
@@ -239,11 +472,11 @@ export default {
   justify-content: space-between;
   align-items: center;
 }
-.form-item-slider>>>.el-form-item__label{
+.form-item-slider ::v-deep .el-form-item__label{
   font-size: 12px;
   line-height: 38px;
 }
-.form-item>>>.el-form-item__label{
+.form-item ::v-deep .el-form-item__label{
   font-size: 12px;
 }
 .el-select-dropdown__item{

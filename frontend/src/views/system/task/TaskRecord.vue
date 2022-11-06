@@ -1,145 +1,346 @@
 <template>
-  <el-col>
-    <el-row style="margin-top: 10px;" v-loading="$store.getters.loadingMap[$store.getters.currentPath]">
-      <complex-table :data="data" :columns="columns" local-key="datasetTaskRecord" :search-config="searchConfig" :transCondition="transCondition" :pagination-config="paginationConfig" @select="select" @search="search" @sort-change="sortChange">
-        <el-table-column prop="name" :label="$t('dataset.task_name')">
+  <div class="dataset-on-time de-search-table">
+    <el-row class="top-operate">
+      <el-col :span="10">
+        <deBtn
+          secondary
+          @click="exportConfirm"
+        >{{ $t("zip.export") }}</deBtn>
+      </el-col>
+      <el-col
+        :span="14"
+        class="right-user"
+      >
+        <el-input
+          ref="search"
+          v-model="nickName"
+          :placeholder="$t('components.by_task_name')"
+          prefix-icon="el-icon-search"
+          class="name-email-search"
+          size="small"
+          clearable
+          @blur="initSearch"
+          @clear="initSearch"
+        />
+        <deBtn
+          :secondary="!cacheCondition.length"
+          :plain="!!cacheCondition.length"
+          icon="iconfont icon-icon-filter"
+          @click="filterShow"
+        >{{ $t("user.filter")
+        }}<template v-if="filterTexts.length">
+          ({{ cacheCondition.length }})
+        </template>
+        </deBtn>
+      </el-col>
+    </el-row>
+    <div
+      v-if="filterTexts.length"
+      class="filter-texts"
+    >
+      <span class="sum">{{ paginationConfig.total }}</span>
+      <span class="title">{{ $t("user.result_one") }}</span>
+      <el-divider direction="vertical" />
+      <i
+        v-if="showScroll"
+        class="el-icon-arrow-left arrow-filter"
+        @click="scrollPre"
+      />
+      <div class="filter-texts-container">
+        <p
+          v-for="(ele, index) in filterTexts"
+          :key="ele"
+          class="text"
+        >
+          {{ ele }} <i
+            class="el-icon-close"
+            @click="clearOneFilter(index)"
+          />
+        </p>
+      </div>
+      <i
+        v-if="showScroll"
+        class="el-icon-arrow-right arrow-filter"
+        @click="scrollNext"
+      />
+      <el-button
+        type="text"
+        class="clear-btn"
+        icon="el-icon-delete"
+        @click="clearFilter"
+      >{{ $t("user.clear_filter") }}</el-button>
+    </div>
+    <div
+      id="resize-for-filter"
+      class="table-container"
+    >
+      <grid-table
+        v-loading="$store.getters.loadingMap[$store.getters.currentPath]"
+        :table-data="data"
+        :columns="[]"
+        :pagination="paginationConfig"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+      >
+        <el-table-column
+          prop="name"
+          :label="$t('dataset.task_name')"
+        >
           <template slot-scope="scope">
             <span>
-              <el-link :type="matchLogId && scope.row.id === matchLogId ? 'danger': ''" style="font-size: 12px" @click="jumpTask(scope.row)">{{ scope.row.name }}</el-link>
+              <el-link
+                :type="
+                  matchLogId && scope.row.id === matchLogId ? 'danger' : ''
+                "
+                style="font-size: 12px"
+                @click="jumpTask(scope.row)"
+              >{{ scope.row.name }}</el-link>
             </span>
           </template>
         </el-table-column>
-        <el-table-column prop="datasetName" :label="$t('dataset.task.dataset')" />
-        <el-table-column prop="startTime" :label="$t('dataset.start_time')">
+        <el-table-column
+          prop="datasetName"
+          :label="$t('dataset.task.dataset')"
+        />
+        <el-table-column
+          prop="startTime"
+          :label="$t('dataset.start_time')"
+        >
           <template slot-scope="scope">
             <span>{{ scope.row.startTime | timestampFormatDate }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="endTime" :label="$t('dataset.end_time')">
+        <el-table-column
+          prop="endTime"
+          :label="$t('dataset.end_time')"
+        >
           <template slot-scope="scope">
             <span>{{ scope.row.endTime | timestampFormatDate }}</span>
           </template>
         </el-table-column>
 
-        <el-table-column prop="status" :label="$t('dataset.status')">
+        <el-table-column
+          prop="status"
+          :label="$t('dataset.status')"
+        >
           <template slot-scope="scope">
-            <span v-if="scope.row.status === 'Completed'" style="color: green">{{ $t('dataset.completed') }}</span>
-            <span v-if="scope.row.status === 'Underway'" style="color: blue">
-              <i class="el-icon-loading" />
-              {{ $t('dataset.underway') }}
+            <span
+              v-if="scope.row.status"
+              :class="[`de-${scope.row.status}-pre`, 'de-status']"
+            >{{ $t(`dataset.${scope.row.status.toLocaleLowerCase()}`) }}
+              <svg-icon
+                v-if="scope.row.status === 'Error'"
+                style="cursor: pointer;"
+                icon-class="icon-maybe"
+                class="field-icon-location"
+                @click="showErrorMassage(scope.row.info)"
+              />
             </span>
-            <span v-if="scope.row.status === 'Error'" style="color: red">
-              <el-link type="danger" style="font-size: 12px" @click="showErrorMassage(scope.row.info)">{{ $t('dataset.error') }}</el-link>
-            </span>
+            <span v-else>-</span>
           </template>
         </el-table-column>
-      </complex-table>
-    </el-row>
+      </grid-table>
+      <keep-alive>
+        <filterUser
+          ref="filterUser"
+          @search="filterDraw"
+        />
+      </keep-alive>
+    </div>
     <el-dialog
       v-dialogDrag
-      :title="$t('dataset.detail')"
-      :visible="show_error_massage"
-      :show-close="false"
-      width="50%"
-      class="dialog-css"
+      :title="$t('dataset.error') + $t('dataset.detail')"
+      :visible.sync="show_error_massage"
+      width="600px"
+      class="de-dialog-form"
     >
       <span class="err-msg">{{ error_massage }}</span>
-      <span slot="footer" class="dialog-footer">
-        <el-button size="mini" @click="show_error_massage = false">{{ $t('dataset.close') }}</el-button>
+      <span
+        slot="footer"
+        class="dialog-footer"
+      >
+        <deBtn
+          secondary
+          @click="show_error_massage = false"
+        >{{
+          $t("dataset.close")
+        }}</deBtn>
       </span>
     </el-dialog>
-  </el-col>
+  </div>
 </template>
 
 <script>
-import ComplexTable from '@/components/business/complex-table'
-import { formatCondition, formatQuickCondition, addOrder, formatOrders } from '@/utils/index'
-import '@riophae/vue-treeselect/dist/vue-treeselect.css'
-import { post } from '@/api/dataset/dataset'
+import {
+  formatOrders
+} from '@/utils/index'
+import { exportExcel, post } from '@/api/dataset/dataset'
+import GridTable from '@/components/gridTable/index.vue'
+import filterUser from './FilterUserRecord.vue'
+import _ from 'lodash'
+import keyEnter from '@/components/msgCfm/keyEnter.js'
 
 export default {
   name: 'TaskRecord',
-  components: { ComplexTable },
+  components: { GridTable, filterUser },
+  mixins: [keyEnter],
   props: {
     param: {
       type: Object,
-      default: null
+      default: () => {}
     },
     transCondition: {
       type: Object,
-      default: null
+      default: () => {}
     }
   },
   data() {
     return {
-      header: '',
       columns: [],
-      buttons: [
-        {
-          label: this.$t('commons.edit'), icon: 'el-icon-edit', type: 'primary', click: this.edit,
-          show: this.checkPermission(['user:edit'])
-        }
-      ],
-      searchConfig: {
-        useQuickSearch: true,
-        useComplexSearch: true,
-        quickPlaceholder: this.$t('dataset.task.search_by_name'),
-        components: [
-          { field: 'dataset_table_task.name', label: this.$t('dataset.task_name'), component: 'FuComplexInput' },
-          { field: 'dataset_table_task.id', label: this.$t('dataset.task_id'), component: 'FuComplexInput' },
-          { field: 'dataset_table.name', label: this.$t('dataset.name'), component: 'DeComplexInput' },
-          { field: 'dataset_table_task_log.status', label: this.$t('commons.status'), component: 'FuComplexSelect', options: [{ label: this.$t('dataset.completed'), value: 'Completed' }, { label: this.$t('dataset.underway'), value: 'Underway' }, { label: this.$t('dataset.error'), value: 'Error' }], multiple: false }
-        ]
-      },
+      nickName: '',
+      showScroll: false,
+      filterTexts: [],
+      cacheCondition: [],
       paginationConfig: {
         currentPage: 1,
         pageSize: 10,
         total: 0
       },
       data: [],
-      dialogVisible: false,
-      editPasswordVisible: false,
-      form: {
-        roles: [{
-          id: ''
-        }]
-      },
-      checkPasswordForm: {},
-      ruleForm: {},
-      defaultForm: { id: null, username: null, nickName: null, gender: '男', email: null, enabled: 1, deptId: null, phone: null },
-      depts: null,
-      roles: [],
-      roleDatas: [],
-      userRoles: [],
-      formType: 'add',
       orderConditions: [],
-      last_condition: null,
       show_error_massage: false,
       error_massage: '',
-      matchLogId: null
+      matchLogId: null,
+      lastRequestComplete: true
     }
   },
-  computed: {
+  watch: {
+    filterTexts: {
+      handler() {
+        this.getScrollStatus()
+      },
+      deep: true
+    }
   },
   created() {
-    if (this.param !== null && this.param.taskId) {
-      this.matchLogId = this.param.logId || this.matchLogId
-      this.transCondition['dataset_table_task.id'] = {
-            operator: 'eq',
-            value: this.param.taskId
-        }
+    const { taskId: id, name: label } = this.transCondition
+    if (id) {
+      this.nickName = label
+    }
+    const { taskId, name, logId } = (this.param || {})
+    if (this.param !== null && taskId) {
+      this.matchLogId = logId || this.matchLogId
+      this.transCondition.taskId = taskId
+      this.transCondition.name = name
+      this.nickName = name
     }
     this.createTimer()
+  },
+  mounted() {
+    this.resizeObserver()
   },
   beforeDestroy() {
     this.destroyTimer()
   },
   methods: {
+    exportConfirm() {
+      this.$confirm(this.$t('log.confirm'), '', {
+        confirmButtonText: this.$t('commons.confirm'),
+        cancelButtonText: this.$t('commons.cancel'),
+        type: 'warning'
+      })
+        .then(() => {
+          this.exportData()
+        })
+        .catch(() => {
+          // this.$info(this.$t('commons.delete_cancel'))
+        })
+    },
+    exportData() {
+      const { taskId, name } = this.transCondition
+      const param = {
+        orders: formatOrders(this.orderConditions),
+        conditions: [...this.cacheCondition]
+      }
+      if (this.nickName) {
+        param.conditions.push({
+          field: `dataset_table_task.name`,
+          operator: 'like',
+          value: this.nickName
+        })
+      }
+      if (taskId && this.nickName === name) {
+        param.conditions.push({
+          operator: 'eq',
+          value: taskId,
+          field: 'dataset_table_task.id'
+        })
+      }
+      exportExcel(param).then((res) => {
+        const blob = new Blob([res], { type: 'application/vnd.ms-excel' })
+        const link = document.createElement('a')
+        link.style.display = 'none'
+        link.href = URL.createObjectURL(blob)
+        link.download = 'DataEase' + this.$t('dataset.sync_log') + '.xls'
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      })
+    },
+    getScrollStatus() {
+      this.$nextTick(() => {
+        const dom = document.querySelector('.filter-texts-container')
+        this.showScroll = dom && dom.scrollWidth > dom.offsetWidth
+      })
+    },
+    resizeObserver() {
+      this.resizeForFilter = new ResizeObserver((entries) => {
+        if (!this.filterTexts.length) return
+        this.layoutResize()
+      })
+      this.resizeForFilter.observe(
+        document.querySelector('#resize-for-filter')
+      )
+    },
+    layoutResize: _.debounce(function() {
+      this.getScrollStatus()
+    }, 200),
+    scrollPre() {
+      const dom = document.querySelector('.filter-texts-container')
+      dom.scrollLeft -= 10
+      if (dom.scrollLeft <= 0) {
+        dom.scrollLeft = 0
+      }
+    },
+    scrollNext() {
+      const dom = document.querySelector('.filter-texts-container')
+      dom.scrollLeft += 10
+      const width = dom.scrollWidth - dom.offsetWidth
+      if (dom.scrollLeft > width) {
+        dom.scrollLeft = width
+      }
+    },
+    clearFilter() {
+      this.$refs.filterUser.clearFilter()
+    },
+    clearOneFilter(index) {
+      this.$refs.filterUser.clearOneFilter(index)
+      this.$refs.filterUser.search()
+    },
+    filterDraw(condition, filterTexts = []) {
+      this.cacheCondition = condition
+      this.filterTexts = filterTexts
+      this.initSearch()
+    },
+    filterShow() {
+      this.$refs.filterUser.init()
+    },
     createTimer() {
+      this.initSearch()
       if (!this.timer) {
         this.timer = setInterval(() => {
-          this.search(this.last_condition, false)
-        }, 5000)
+          this.timerSearch(false)
+        }, 15000)
       }
     },
     destroyTimer() {
@@ -148,31 +349,88 @@ export default {
         this.timer = null
       }
     },
-    sortChange({ column, prop, order }) {
-      this.orderConditions = []
-      if (!order) {
-        this.search(this.last_condition)
-        return
-      }
-      if (prop === 'dept') {
-        prop = 'u.deptId'
-      }
-      if (prop === 'status') {
-        prop = 'u.enabled'
-      }
-      this.orderConditions = []
-      addOrder({ field: prop, value: order }, this.orderConditions)
-      this.search(this.last_condition)
+    handleSizeChange(pageSize) {
+      this.paginationConfig.currentPage = 1
+      this.paginationConfig.pageSize = pageSize
+      this.search()
     },
-    select(selection) {
+    handleCurrentChange(currentPage) {
+      this.paginationConfig.currentPage = currentPage
+      this.search()
+    },
+    initSearch() {
+      this.handleCurrentChange(1)
+    },
+    timerSearch(showLoading = true) {
+      if (!this.lastRequestComplete) {
+        return
+      } else {
+        this.lastRequestComplete = false
+      }
+      const { taskId, name } = this.transCondition
+      const param = {
+        orders: formatOrders(this.orderConditions),
+        conditions: [...this.cacheCondition]
+      }
+      if (this.nickName) {
+        param.conditions.push({
+          field: `dataset_table_task.name`,
+          operator: 'like',
+          value: this.nickName
+        })
+      }
+      if (taskId && this.nickName === name) {
+        param.conditions.push({
+          operator: 'eq',
+          value: taskId,
+          field: 'dataset_table_task.id'
+        })
+      }
+      post(
+        '/dataset/taskLog/list/notexcel/' +
+          this.paginationConfig.currentPage +
+          '/' +
+          this.paginationConfig.pageSize,
+        param,
+        showLoading
+      )
+        .then((response) => {
+          this.data = response.data.listObject
+          this.paginationConfig.total = response.data.itemCount
+          this.lastRequestComplete = true
+        })
+        .catch(() => {
+          this.lastRequestComplete = true
+        })
     },
     search(condition, showLoading = true) {
-      this.last_condition = condition
-      condition = formatQuickCondition(condition, 'dataset_table_task.name')
-      const temp = formatCondition(condition)
-      const param = temp || {}
-      param['orders'] = formatOrders(this.orderConditions)
-      post('/dataset/taskLog/list/notexcel/' + this.paginationConfig.currentPage + '/' + this.paginationConfig.pageSize, param, showLoading).then(response => {
+      const { taskId, name } = this.transCondition
+      const param = {
+        orders: formatOrders(this.orderConditions),
+        conditions: [...this.cacheCondition]
+      }
+      if (this.nickName) {
+        param.conditions.push({
+          field: `dataset_table_task.name`,
+          operator: 'like',
+          value: this.nickName
+        })
+      }
+      if (taskId && this.nickName === name) {
+        param.conditions.push({
+          operator: 'eq',
+          value: taskId,
+          field: 'dataset_table_task.id'
+        })
+      }
+      post(
+        '/dataset/taskLog/list/notexcel/' +
+          this.paginationConfig.currentPage +
+          '/' +
+          this.paginationConfig.pageSize,
+        param,
+        showLoading
+      ).then((response) => {
         this.data = response.data.listObject
         this.paginationConfig.total = response.data.itemCount
       })
@@ -195,40 +453,30 @@ export default {
 </script>
 
 <style scoped>
-.el-divider--horizontal {
-  margin: 12px 0;
-}
-
-.el-radio{
-  margin-right: 10px;
-}
-.el-radio>>>.el-radio__label{
+.err-msg {
   font-size: 12px;
+  word-break: normal;
+  width: auto;
+  display: block;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow: hidden;
+}
+</style>
+<style lang="scss" scoped>
+.dataset-on-time {
+  margin: 0;
+  width: 100%;
+  overflow: auto;
+  background-color: var(--ContentBG, #fff);
+  padding: 24px;
+  height: 100%;
+}
+.table-container {
+  height: calc(100% - 50px);
 }
 
-.dialog-css >>> .el-dialog__header {
-  padding: 20px 20px 0;
-}
-
-.dialog-css >>> .el-dialog__body {
-  padding: 10px 20px 20px;
-}
-
-.el-form-item {
-  margin-bottom: 10px;
-}
-
-.err-msg{
-  font-size: 12px;
-  word-break:normal;
-  width:auto;
-  display:block;
-  white-space:pre-wrap;
-  word-wrap : break-word ;
-  overflow: hidden ;
-}
-
-span{
-  font-size: 12px;
+.table-container-filter {
+  height: calc(100% - 110px);
 }
 </style>

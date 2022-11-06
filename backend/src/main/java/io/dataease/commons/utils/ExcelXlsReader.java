@@ -1,8 +1,8 @@
 package io.dataease.commons.utils;
 
-import io.dataease.datasource.dto.TableFiled;
 import io.dataease.dto.dataset.ExcelSheetData;
 import io.dataease.i18n.Translator;
+import io.dataease.plugins.common.dto.datasource.TableField;
 import org.apache.poi.hssf.eventusermodel.*;
 import org.apache.poi.hssf.eventusermodel.dummyrecord.LastCellOfRowDummyRecord;
 import org.apache.poi.hssf.eventusermodel.dummyrecord.MissingCellDummyRecord;
@@ -23,9 +23,17 @@ import java.util.stream.Collectors;
  **/
 public class ExcelXlsReader implements HSSFListener {
 
-    public ExcelReaderUtil excelReaderUtil = new ExcelReaderUtil();
+    private int minColumns = -1;
 
-    private int minColums = -1;
+    public Integer getObtainedNum() {
+        return obtainedNum;
+    }
+
+    public void setObtainedNum(Integer obtainedNum) {
+        this.obtainedNum = obtainedNum;
+    }
+
+    private Integer obtainedNum = null;
 
     private POIFSFileSystem fs;
 
@@ -96,7 +104,7 @@ public class ExcelXlsReader implements HSSFListener {
     @SuppressWarnings("unused")
     private String sheetName;
 
-    public List<TableFiled> fields = new ArrayList<>();
+    public List<TableField> fields = new ArrayList<>();
     public List<List<String>> data = new ArrayList<>();
     public List<ExcelSheetData> totalSheets = new ArrayList<>();
     /**
@@ -105,11 +113,11 @@ public class ExcelXlsReader implements HSSFListener {
     private boolean isDateFormat = false;
 
 
-    public List<TableFiled> getFields() {
+    public List<TableField> getFields() {
         return fields;
     }
 
-    public void setFields(List<TableFiled> fields) {
+    public void setFields(List<TableField> fields) {
         this.fields = fields;
     }
 
@@ -203,8 +211,8 @@ public class ExcelXlsReader implements HSSFListener {
                 thisRow = frec.getRow();
                 thisColumn = frec.getColumn();
                 thisStr = String.valueOf(frec.getValue());
-                String feildType = checkType(thisStr, thisColumn);
-                if(feildType.equalsIgnoreCase("LONG") && thisStr.endsWith(".0")){
+                String fieldType = checkType(thisStr, thisColumn);
+                if(fieldType.equalsIgnoreCase("LONG") && thisStr.endsWith(".0")){
                     thisStr = thisStr.substring(0, thisStr.length() -2);
                 }
                 cellList.add(thisColumn, thisStr);
@@ -238,6 +246,7 @@ public class ExcelXlsReader implements HSSFListener {
                     value = sstRecord.getString(lsrec.getSSTIndex()).toString().trim();
                     value = value.equals("") ? "" : value;
                     cellList.add(thisColumn, value);
+                    checkType(value, thisColumn);
                     checkRowIsNull(value);  //如果里面某个单元格含有值，则标识该行不为空行
                 }
                 break;
@@ -259,7 +268,7 @@ public class ExcelXlsReader implements HSSFListener {
                 value = value.equals("") ? "" : value;
                 //向容器加入列值
                 cellList.add(thisColumn, value);
-                if(formatIndex == 59){
+                if(formatIndex == 59 || formatIndex== 14){
                     totalSheets.get(totalSheets.size() -1).getFields().get(thisColumn).setFieldType("DATETIME");
                 }else {
                     checkType(value, thisColumn);
@@ -291,7 +300,7 @@ public class ExcelXlsReader implements HSSFListener {
 
         //行结束时的操作
         if (record instanceof LastCellOfRowDummyRecord) {
-            if (minColums > 0) {
+            if (minColumns > 0) {
                 //列值重新置空
                 if (lastColumnNumber == -1) {
                     lastColumnNumber = 0;
@@ -299,9 +308,9 @@ public class ExcelXlsReader implements HSSFListener {
             }
             lastColumnNumber = -1;
 
-            if(!totalSheets.stream().map(ExcelSheetData::getSheetName).collect(Collectors.toList()).contains(sheetName)){
+            if(!totalSheets.stream().map(ExcelSheetData::getExcelLabel).collect(Collectors.toList()).contains(sheetName)){
                 ExcelSheetData excelSheetData = new ExcelSheetData();
-                excelSheetData.setSheetName(sheetName);
+                excelSheetData.setExcelLabel(sheetName);
                 excelSheetData.setData(new ArrayList<>());
                 excelSheetData.setFields(new ArrayList<>());
                 totalSheets.add(excelSheetData);
@@ -309,22 +318,22 @@ public class ExcelXlsReader implements HSSFListener {
 
             if(curRow == 0){
                 for (String s : cellList) {
-                    TableFiled tableFiled = new TableFiled();
-                    tableFiled.setFieldType("TEXT");
-                    tableFiled.setFieldSize(65533);
-                    tableFiled.setFieldName(s);
-                    tableFiled.setRemarks(s);
-                    this.fields.add(tableFiled);
-                    totalSheets.get(totalSheets.size() -1).getFields().add(tableFiled);
+                    TableField tableField = new TableField();
+                    tableField.setFieldType("TEXT");
+                    tableField.setFieldSize(65533);
+                    tableField.setFieldName(s);
+                    tableField.setRemarks(s);
+                    this.fields.add(tableField);
+                    totalSheets.get(totalSheets.size() -1).getFields().add(tableField);
                 }
             }
 
 
             if (flag && curRow != 0) { //该行不为空行且该行不是第一行，发送（第一行为列名，不需要）
-                if(!totalSheets.stream().map(ExcelSheetData::getSheetName).collect(Collectors.toList()).contains(sheetName)){
+                if(!totalSheets.stream().map(ExcelSheetData::getExcelLabel).collect(Collectors.toList()).contains(sheetName)){
                     ExcelSheetData excelSheetData = new ExcelSheetData();
                     excelSheetData.setData(new ArrayList<>(data));
-                    excelSheetData.setSheetName(sheetName);
+                    excelSheetData.setExcelLabel(sheetName);
                     excelSheetData.setFields(new ArrayList<>(fields));
                     List<String> tmp = new ArrayList<>(cellList);
                     excelSheetData.getData().add(tmp);
@@ -332,7 +341,12 @@ public class ExcelXlsReader implements HSSFListener {
                     totalSheets.add(excelSheetData);
                 }else {
                     List<String> tmp = new ArrayList<>(cellList);
-                    totalSheets.stream().filter(s->s.getSheetName().equalsIgnoreCase(sheetName)).collect(Collectors.toList()).get(0).getData().add(tmp);
+                    if(obtainedNum != null && totalSheets.stream().filter(s->s.getExcelLabel().equalsIgnoreCase(sheetName)).collect(Collectors.toList()).get(0).getData().size() < obtainedNum){
+                        totalSheets.stream().filter(s->s.getExcelLabel().equalsIgnoreCase(sheetName)).collect(Collectors.toList()).get(0).getData().add(tmp);
+                    }
+                    if(obtainedNum == null){
+                        totalSheets.stream().filter(s->s.getExcelLabel().equalsIgnoreCase(sheetName)).collect(Collectors.toList()).get(0).getData().add(tmp);
+                    }
                     totalRows++;
                 }
             }
@@ -374,12 +388,17 @@ public class ExcelXlsReader implements HSSFListener {
             type = "TEXT";
         }
 
-        String oldType = totalSheets.get(totalSheets.size() -1).getFields().get(thisColumn).getFieldType();
-        if(type.equalsIgnoreCase("LONG") && oldType.equalsIgnoreCase("TEXT")){
+        if(curRow==1){
             totalSheets.get(totalSheets.size() -1).getFields().get(thisColumn).setFieldType(type);
         }
-        if(type.equalsIgnoreCase("DOUBLE")){
-            totalSheets.get(totalSheets.size() -1).getFields().get(thisColumn).setFieldType(type);
+        if(curRow > 1) {
+            String oldType = totalSheets.get(totalSheets.size() -1).getFields().get(thisColumn).getFieldType();
+            if(type.equalsIgnoreCase("TEXT")){
+                totalSheets.get(totalSheets.size() -1).getFields().get(thisColumn).setFieldType(type);
+            }
+            if(type.equalsIgnoreCase("DOUBLE") && oldType.equalsIgnoreCase("LONG")){
+                totalSheets.get(totalSheets.size() -1).getFields().get(thisColumn).setFieldType(type);
+            }
         }
         return type;
     }

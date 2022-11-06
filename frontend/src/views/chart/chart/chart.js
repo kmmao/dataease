@@ -1,23 +1,60 @@
+export const DEFAULT_TAB_COLOR_CASE_DARK = {
+  headFontColor: '#FFFFFF',
+  headFontActiveColor: '#FFFFFF',
+  headBorderColor: '#131E42',
+  headBorderActiveColor: '#131E42',
+  headPosition: 'left'
+}
+
+export const DEFAULT_TAB_COLOR_CASE_LIGHT = {
+  headFontColor: '#OOOOOO',
+  headFontActiveColor: '#OOOOOO',
+  headBorderColor: '#OOOOOO',
+  headBorderActiveColor: '#OOOOOO',
+  headPosition: 'left'
+}
+
 export const DEFAULT_COLOR_CASE = {
   value: 'default',
   colors: ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'],
   alpha: 100,
-  tableHeaderBgColor: '#4e81bb',
-  tableItemBgColor: '#c6d9f0',
+  tableHeaderBgColor: '#6D9A49',
+  tableItemBgColor: '#FFFFFF',
+  tableHeaderFontColor: '#000000',
   tableFontColor: '#000000',
   tableStripe: true,
   dimensionColor: '#000000',
-  quotaColor: '#000000'
+  quotaColor: '#5470c6',
+  tableBorderColor: '#E6E7E4',
+  seriesColors: [], // 格式：{"name":"s1","color":"","isCustom":false}
+  areaBorderColor: '#303133',
+  areaBaseColor: '#FFFFFF'
+}
+
+export const DEFAULT_COLOR_CASE_DARK = {
+  value: 'default',
+  colors: ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'],
+  alpha: 100,
+  tableHeaderBgColor: '#5470c6',
+  tableItemBgColor: '#131E42',
+  tableFontColor: '#ffffff',
+  tableStripe: true,
+  dimensionColor: '#ffffff',
+  quotaColor: '#5470c6',
+  tableBorderColor: '#CCCCCC',
+  seriesColors: [], // 格式：{"name":"s1","color":"","isCustom":false}
+  areaBorderColor: '#EBEEF5',
+  areaBaseColor: '5470C6'
 }
 export const DEFAULT_SIZE = {
   barDefault: true,
   barWidth: 40,
   barGap: 0.4,
-  lineWidth: 1,
+  lineWidth: 2,
   lineType: 'solid',
-  lineSymbol: 'emptyCircle',
+  lineSymbol: 'circle',
   lineSymbolSize: 4,
-  lineSmooth: false,
+  lineSmooth: true,
   lineArea: false,
   pieInnerRadius: 0,
   pieOuterRadius: 80,
@@ -25,19 +62,67 @@ export const DEFAULT_SIZE = {
   pieRoseRadius: 5,
   funnelWidth: 80,
   radarShape: 'polygon',
+  radarSize: 80,
   tableTitleFontSize: 12,
   tableItemFontSize: 12,
   tableTitleHeight: 36,
   tableItemHeight: 36,
+  tablePageSize: '20',
+  tableColumnMode: 'custom',
+  tableColumnWidth: 100,
+  tableHeaderAlign: 'left',
+  tableItemAlign: 'right',
+  gaugeMinType: 'fix', // fix or dynamic
+  gaugeMinField: {
+    id: '',
+    summary: ''
+  },
   gaugeMin: 0,
+  gaugeMaxType: 'fix', // fix or dynamic
+  gaugeMaxField: {
+    id: '',
+    summary: ''
+  },
   gaugeMax: 100,
   gaugeStartAngle: 225,
   gaugeEndAngle: -45,
+  gaugeTickCount: 5,
   dimensionFontSize: 18,
   quotaFontSize: 18,
   spaceSplit: 10,
   dimensionShow: true,
-  quotaShow: true
+  quotaShow: true,
+  quotaFontFamily: 'Microsoft YaHei',
+  quotaFontIsBolder: false,
+  quotaFontIsItalic: false,
+  quotaLetterSpace: '0',
+  quotaFontShadow: false,
+  dimensionFontFamily: 'Microsoft YaHei',
+  dimensionFontIsBolder: false,
+  dimensionFontIsItalic: false,
+  dimensionLetterSpace: '0',
+  dimensionFontShadow: false,
+  scatterSymbol: 'circle',
+  scatterSymbolSize: 20,
+  treemapWidth: 80,
+  treemapHeight: 80,
+  liquidMax: 100,
+  liquidMaxType: 'fix', // fix or dynamic
+  liquidMaxField: {
+    id: '',
+    summary: ''
+  },
+  liquidSize: 80,
+  liquidOutlineBorder: 4,
+  liquidOutlineDistance: 8,
+  liquidWaveLength: 128,
+  liquidWaveCount: 3,
+  liquidShape: 'circle',
+  tablePageMode: 'page',
+  symbolOpacity: 0.7,
+  symbolStrokeWidth: 2,
+  showIndex: false,
+  indexLabel: '序号'
 }
 export const DEFAULT_LABEL = {
   show: false,
@@ -48,7 +133,16 @@ export const DEFAULT_LABEL = {
   gaugeFormatter: '{value}',
   labelLine: {
     show: true
-  }
+  },
+  gaugeLabelFormatter: {
+    type: 'value', // auto,value,percent
+    unit: 1, // 换算单位
+    suffix: '', // 单位后缀
+    decimalCount: 2, // 小数位数
+    thousandSeparator: true// 千分符
+  },
+  reserveDecimalCount: 2,
+  labelContent: ['dimension', 'proportion']
 }
 export const DEFAULT_TOOLTIP = {
   show: true,
@@ -58,28 +152,93 @@ export const DEFAULT_TOOLTIP = {
     fontSize: '10',
     color: '#909399'
   },
-  formatter: ''
+  formatter: '',
+  backgroundColor: '#ffffff'
+}
+export const DEFAULT_TOTAL = {
+  row: {
+    showGrandTotals: true,
+    showSubTotals: true,
+    reverseLayout: false,
+    reverseSubLayout: false,
+    label: '总计',
+    subLabel: '小计',
+    subTotalsDimensions: [],
+    calcTotals: {
+      aggregation: 'SUM'
+    },
+    calcSubTotals: {
+      aggregation: 'SUM'
+    }
+  },
+  col: {
+    showGrandTotals: true,
+    showSubTotals: true,
+    reverseLayout: false,
+    reverseSubLayout: false,
+    label: '总计',
+    subLabel: '小计',
+    subTotalsDimensions: [],
+    calcTotals: {
+      aggregation: 'SUM'
+    },
+    calcSubTotals: {
+      aggregation: 'SUM'
+    }
+  }
 }
 export const DEFAULT_TITLE_STYLE = {
   show: true,
   fontSize: '18',
-  color: '#303133',
-  hPosition: 'center',
+  color: '#000000',
+  hPosition: 'left',
   vPosition: 'top',
   isItalic: false,
-  isBolder: false
+  isBolder: true,
+  remarkShow: false,
+  remark: '',
+  remarkBackgroundColor: '#ffffffff',
+  fontFamily: 'Microsoft YaHei',
+  letterSpace: '0',
+  fontShadow: false
 }
+
+export const DEFAULT_TITLE_STYLE_DARK = {
+  show: true,
+  fontSize: '18',
+  color: '#FFFFFF',
+  hPosition: 'left',
+  vPosition: 'top',
+  isItalic: false,
+  isBolder: true,
+  remarkShow: false,
+  remark: '',
+  remarkBackgroundColor: '#5A5C62',
+  fontFamily: 'Microsoft YaHei',
+  letterSpace: '0',
+  fontShadow: false
+}
+
 export const DEFAULT_LEGEND_STYLE = {
   show: true,
   hPosition: 'center',
   vPosition: 'bottom',
   orient: 'horizontal',
-  icon: 'rect',
+  icon: 'circle',
   textStyle: {
     color: '#333333',
     fontSize: '12'
   }
 }
+
+export const DEFAULT_MARGIN_STYLE = {
+  marginModel: 'auto',
+  marginTop: 40,
+  marginBottom: 44,
+  marginLeft: 15,
+  marginRight: 10
+}
+
 export const DEFAULT_XAXIS_STYLE = {
   show: true,
   position: 'bottom',
@@ -95,6 +254,14 @@ export const DEFAULT_XAXIS_STYLE = {
     rotate: 0,
     formatter: '{value}'
   },
+  axisLine: {
+    show: true,
+    lineStyle: {
+      color: '#cccccc',
+      width: 1,
+      style: 'solid'
+    }
+  },
   splitLine: {
     show: false,
     lineStyle: {
@@ -102,6 +269,20 @@ export const DEFAULT_XAXIS_STYLE = {
       width: 1,
       style: 'solid'
     }
+  },
+  axisValue: {
+    auto: true,
+    min: null,
+    max: null,
+    split: null,
+    splitCount: null
+  },
+  axisLabelFormatter: {
+    type: 'auto', // auto,value,percent
+    unit: 1, // 换算单位
+    suffix: '', // 单位后缀
+    decimalCount: 2, // 小数位数
+    thousandSeparator: true// 千分符
   }
 }
 export const DEFAULT_YAXIS_STYLE = {
@@ -119,6 +300,14 @@ export const DEFAULT_YAXIS_STYLE = {
     rotate: 0,
     formatter: '{value}'
   },
+  axisLine: {
+    show: false,
+    lineStyle: {
+      color: '#cccccc',
+      width: 1,
+      style: 'solid'
+    }
+  },
   splitLine: {
     show: true,
     lineStyle: {
@@ -126,11 +315,72 @@ export const DEFAULT_YAXIS_STYLE = {
       width: 1,
       style: 'solid'
     }
+  },
+  axisValue: {
+    auto: true,
+    min: null,
+    max: null,
+    split: null,
+    splitCount: null
+  },
+  axisLabelFormatter: {
+    type: 'auto', // auto,value,percent
+    unit: 1, // 换算单位
+    suffix: '', // 单位后缀
+    decimalCount: 2, // 小数位数
+    thousandSeparator: true// 千分符
+  }
+}
+export const DEFAULT_YAXIS_EXT_STYLE = {
+  show: true,
+  position: 'right',
+  name: '',
+  nameTextStyle: {
+    color: '#333333',
+    fontSize: 12
+  },
+  axisLabel: {
+    show: true,
+    color: '#333333',
+    fontSize: '12',
+    rotate: 0,
+    formatter: '{value}'
+  },
+  axisLine: {
+    show: false,
+    lineStyle: {
+      color: '#cccccc',
+      width: 1,
+      style: 'solid'
+    }
+  },
+  splitLine: {
+    show: true,
+    lineStyle: {
+      color: '#cccccc',
+      width: 1,
+      style: 'solid'
+    }
+  },
+  axisValue: {
+    auto: true,
+    min: null,
+    max: null,
+    split: null,
+    splitCount: null
+  },
+  axisLabelFormatter: {
+    type: 'auto', // auto,value,percent
+    unit: 1, // 换算单位
+    suffix: '', // 单位后缀
+    decimalCount: 2, // 小数位数
+    thousandSeparator: true// 千分符
   }
 }
 export const DEFAULT_BACKGROUND_COLOR = {
   color: '#ffffff',
-  alpha: 0
+  alpha: 0,
+  borderRadius: 0
 }
 export const DEFAULT_SPLIT = {
   name: {
@@ -175,6 +425,23 @@ export const DEFAULT_SPLIT = {
   splitArea: {
     show: true
   }
+}
+export const DEFAULT_FUNCTION_CFG = {
+  sliderShow: false,
+  sliderRange: [0, 10],
+  sliderBg: '#FFFFFF',
+  sliderFillBg: '#BCD6F1',
+  sliderTextClolor: '#999999'
+}
+export const DEFAULT_THRESHOLD = {
+  gaugeThreshold: '',
+  labelThreshold: [],
+  tableThreshold: []
+}
+export const DEFAULT_SCROLL = {
+  open: false,
+  row: 1,
+  interval: 2000
 }
 // chart config
 export const BASE_BAR = {
@@ -418,10 +685,6 @@ export const BASE_FUNNEL = {
       maxSize: '100%',
       sort: 'descending',
       gap: 1,
-      // label: {
-      //   show: true,
-      //   position: 'inside'
-      // },
       labelLine: {
         length: 10,
         lineStyle: {
@@ -508,11 +771,7 @@ export const BASE_RADAR = {
     },
     indicator: []
   },
-  series: [{
-    type: 'radar',
-    // areaStyle: {normal: {}},
-    data: []
-  }]
+  series: []
 }
 
 export const BASE_GAUGE = {
@@ -555,7 +814,7 @@ export const BASE_GAUGE = {
 }
 
 export const BASE_CHART_STRING = {
-  stylePriority: 'panel',
+  stylePriority: 'view',
   xaxis: '[]',
   yaxis: '[]',
   show: true,
@@ -573,7 +832,7 @@ export const BASE_CHART_STRING = {
     legend: DEFAULT_LEGEND_STYLE,
     xAxis: DEFAULT_XAXIS_STYLE,
     yAxis: DEFAULT_YAXIS_STYLE,
-    background: DEFAULT_BACKGROUND_COLOR
+    yAxisExt: DEFAULT_YAXIS_EXT_STYLE
   }),
   customFilter: '[]'
 }
@@ -596,7 +855,7 @@ export const BASE_CHART = {
     legend: DEFAULT_LEGEND_STYLE,
     xAxis: DEFAULT_XAXIS_STYLE,
     yAxis: DEFAULT_YAXIS_STYLE,
-    background: DEFAULT_BACKGROUND_COLOR
+    yAxisExt: DEFAULT_YAXIS_EXT_STYLE
   },
   customFilter: []
 }
@@ -618,19 +877,220 @@ export const BASE_MAP = {
     calculable: true,
     inRange: {
       color: ['lightskyblue', 'yellow', 'orangered']
-    }
+    },
+    textStyle: {},
+    right: 0
   },
-  //   legend: {},
   series: [
     {
       name: '',
       type: 'map',
-      map: 'HK',
+      map: 'MAP',
       roam: true,
-      //   label: {
-      //     show: true
-      //   },
+      data: [],
+      itemStyle: {
+        normal: {
+
+        },
+        emphasis: {
+          label: {
+            show: false
+          }
+        }
+      }
+    }
+  ]
+}
+
+export const BASE_SCATTER = {
+  title: {
+    text: '',
+    textStyle: {
+      fontWeight: 'normal'
+    }
+  },
+  grid: {
+    containLabel: true
+  },
+  tooltip: {},
+  legend: {
+    show: true,
+    type: 'scroll',
+    itemWidth: 10,
+    itemHeight: 10,
+    icon: 'rect',
+    data: []
+  },
+  xAxis: {
+    data: [],
+    boundaryGap: false
+  },
+  yAxis: {
+    type: 'value'
+  },
+  series: [],
+  dataZoom: [
+    {
+      type: 'slider',
+      show: false,
+      xAxisIndex: [0],
+      start: 0,
+      end: 100
+    },
+    {
+      type: 'slider',
+      show: false,
+      yAxisIndex: [0],
+      left: '93%',
+      start: 0,
+      end: 100
+    },
+    {
+      type: 'inside',
+      xAxisIndex: [0],
+      start: 0,
+      end: 100
+    },
+    {
+      type: 'inside',
+      yAxisIndex: [0],
+      start: 0,
+      end: 100
+    }
+  ]
+}
+
+export const BASE_TREEMAP = {
+  title: {
+    text: '',
+    textStyle: {
+      fontWeight: 'normal'
+    }
+  },
+  grid: {
+    containLabel: true
+  },
+  tooltip: {},
+  legend: {
+    show: true,
+    type: 'scroll',
+    itemWidth: 10,
+    itemHeight: 10,
+    icon: 'rect'
+  },
+  series: [
+    {
+      // name: '',
+      type: 'treemap',
+      itemStyle: {
+        gapWidth: 2
+      },
+      breadcrumb: {
+        show: false
+      },
       data: []
     }
   ]
 }
+
+export const BASE_MIX = {
+  title: {
+    text: '',
+    textStyle: {
+      fontWeight: 'normal'
+    }
+  },
+  grid: {
+    containLabel: true
+  },
+  tooltip: {},
+  legend: {
+    show: true,
+    type: 'scroll',
+    itemWidth: 10,
+    itemHeight: 10,
+    icon: 'rect',
+    data: []
+  },
+  xAxis: {
+    data: []
+  },
+  yAxis: [
+    {
+      type: 'value'
+    },
+    {
+      type: 'value'
+    }
+  ],
+  series: [],
+  dataZoom: [
+    {
+      type: 'slider',
+      show: false,
+      xAxisIndex: [0],
+      start: 0,
+      end: 100
+    },
+    {
+      type: 'slider',
+      show: false,
+      yAxisIndex: [0],
+      left: '93%',
+      start: 0,
+      end: 100
+    },
+    {
+      type: 'inside',
+      xAxisIndex: [0],
+      start: 0,
+      end: 100
+    },
+    {
+      type: 'inside',
+      yAxisIndex: [0],
+      start: 0,
+      end: 100
+    }
+  ]
+}
+
+export const COLOR_PANEL = [
+  '#ff4500',
+  '#ff8c00',
+  '#ffd700',
+  '#90ee90',
+  '#00ced1',
+  '#1e90ff',
+  '#c71585',
+  '#999999',
+  '#000000',
+  '#FFFFFF'
+]
+
+export const BASE_ECHARTS_SELECT = {
+  itemStyle: {
+    shadowBlur: 2
+  }
+}
+
+export const CHART_FONT_FAMILY = [
+  { name: '微软雅黑', value: 'Microsoft YaHei' },
+  { name: '宋体', value: 'SimSun' },
+  { name: '黑体', value: 'SimHei' },
+  { name: '楷体', value: 'KaiTi' }
+]
+
+export const CHART_FONT_LETTER_SPACE = [
+  { name: '0px', value: '0' },
+  { name: '1px', value: '1' },
+  { name: '2px', value: '2' },
+  { name: '3px', value: '3' },
+  { name: '4px', value: '4' },
+  { name: '5px', value: '5' },
+  { name: '6px', value: '6' },
+  { name: '7px', value: '7' },
+  { name: '8px', value: '8' },
+  { name: '9px', value: '9' },
+  { name: '10px', value: '10' }
+]

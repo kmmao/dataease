@@ -1,9 +1,16 @@
 <template>
-  <div v-show="menuShow" class="contextmenu" :style="{ top: menuTop + 'px', left: menuLeft + 'px' }">
+  <div
+    v-show="menuShow"
+    class="contextmenu"
+    :style="{ top: menuTop + 'px', left: menuLeft + 'px' }"
+  >
     <ul @mouseup="handleMouseUp">
       <template v-if="curComponent">
         <template v-if="!curComponent.isLock">
-          <li v-if="editFilter.includes(curComponent.type)" @click="edit"> {{ $t('panel.edit') }}</li>
+          <li
+            v-if="editFilter.includes(curComponent.type)"
+            @click="edit"
+          > {{ $t('panel.edit') }}</li>
           <li @click="copy"> {{ $t('panel.copy') }}</li>
           <li @click="cut"> {{ $t('panel.cut') }}</li>
           <li @click="deleteComponent"> {{ $t('panel.delete') }}</li>
@@ -13,9 +20,15 @@
           <li @click="upComponent"> {{ $t('panel.upComponent') }}</li>
           <li @click="downComponent"> {{ $t('panel.downComponent') }}</li>
         </template>
-        <li v-else @click="unlock">解锁</li>
+        <li
+          v-else
+          @click="unlock"
+        >解锁</li>
       </template>
-      <li v-else @click="paste">粘贴</li>
+      <li
+        v-else
+        @click="paste"
+      >粘贴</li>
     </ul>
   </div>
 </template>
@@ -30,7 +43,8 @@ export default {
       copyData: null,
       editFilter: [
         'view',
-        'custom'
+        'custom',
+        'custom-button'
       ]
     }
   },
@@ -50,15 +64,19 @@ export default {
       if (this.curComponent.type === 'view') {
         this.$store.dispatch('chart/setViewId', null)
         this.$store.dispatch('chart/setViewId', this.curComponent.propValue.viewId)
-        bus.$emit('PanelSwitchComponent', { name: 'ChartEdit', param: { 'id': this.curComponent.propValue.viewId, 'optType': 'edit' }})
+        bus.$emit('change_panel_right_draw', true)
       }
       if (this.curComponent.type === 'custom') {
         bus.$emit('component-dialog-edit')
       }
 
+      if (this.curComponent.type === 'custom-button') {
+        bus.$emit('button-dialog-edit')
+      }
+
       // 编辑样式组件
 
-      if (this.curComponent.type === 'v-text' || this.curComponent.type === 'rect-shape') {
+      if (this.curComponent.type === 'v-text' || this.curComponent.type === 'de-rich-text' || this.curComponent.type === 'rect-shape') {
         bus.$emit('component-dialog-style')
       }
     },
@@ -87,13 +105,13 @@ export default {
 
     paste() {
       this.$store.commit('paste', true)
-      this.$store.commit('recordSnapshot')
+      this.$store.commit('recordSnapshot', 'paste')
     },
 
     deleteComponent() {
       this.deleteCurCondition()
       this.$store.commit('deleteComponent')
-      this.$store.commit('recordSnapshot')
+      this.$store.commit('recordSnapshot', 'deleteComponent')
       this.$store.commit('setCurComponent', { component: null, index: null })
     },
 
@@ -106,22 +124,22 @@ export default {
 
     upComponent() {
       this.$store.commit('upComponent')
-      this.$store.commit('recordSnapshot')
+      this.$store.commit('recordSnapshot', 'upComponent')
     },
 
     downComponent() {
       this.$store.commit('downComponent')
-      this.$store.commit('recordSnapshot')
+      this.$store.commit('recordSnapshot', 'downComponent')
     },
 
     topComponent() {
       this.$store.commit('topComponent')
-      this.$store.commit('recordSnapshot')
+      this.$store.commit('recordSnapshot', 'topComponent')
     },
 
     bottomComponent() {
       this.$store.commit('bottomComponent')
-      this.$store.commit('recordSnapshot')
+      this.$store.commit('recordSnapshot', 'bottomComponent')
     }
   }
 }
@@ -155,7 +173,7 @@ export default {
             cursor: pointer;
 
             &:hover {
-                background-color: #f5f7fa;
+                background-color: var(--background-color-base, #f5f7fa);
             }
         }
     }

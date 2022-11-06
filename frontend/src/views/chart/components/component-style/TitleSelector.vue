@@ -1,118 +1,171 @@
 <template>
   <div style="width: 100%">
     <el-col>
-      <el-form ref="titleForm" :model="titleForm" label-width="80px" size="mini" :disabled="!hasDataPermission('manage',param.privileges)">
-        <el-form-item :label="$t('chart.show')" class="form-item">
-          <el-checkbox v-model="titleForm.show" @change="changeTitleStyle">{{ $t('chart.show') }}</el-checkbox>
+      <el-form
+        ref="titleForm"
+        :model="titleForm"
+        label-width="80px"
+        size="mini"
+      >
+        <el-form-item
+          v-show="showProperty('show')"
+          :label="$t('chart.show')"
+          class="form-item"
+        >
+          <el-checkbox
+            v-model="titleForm.show"
+            @change="changeTitleStyle('show')"
+          >{{ $t('chart.show') }}</el-checkbox>
         </el-form-item>
-        <div v-show="titleForm.show">
-          <el-form-item :label="$t('chart.title')" class="form-item">
+        <div v-show="showProperty('show') && titleForm.show">
+          <el-form-item
+            v-show="showProperty('title')"
+            v-if="!batchOptStatus"
+            :label="$t('chart.title')"
+            class="form-item"
+          >
             <el-input
               v-model="titleForm.title"
               size="mini"
               :placeholder="$t('chart.title')"
               clearable
-              @blur="changeTitleStyle"
+              @blur="changeTitleStyle('title')"
               @input="inputOnInput($event)"
             />
           </el-form-item>
-          <el-form-item :label="$t('chart.text_fontsize')" class="form-item">
-            <el-select v-model="titleForm.fontSize" :placeholder="$t('chart.text_fontsize')" size="mini" @change="changeTitleStyle">
-              <el-option v-for="option in fontSize" :key="option.value" :label="option.name" :value="option.value" />
+          <el-form-item
+            v-show="showProperty('fontFamily')"
+            :label="$t('chart.font_family')"
+            class="form-item"
+          >
+            <el-select
+              v-model="titleForm.fontFamily"
+              :placeholder="$t('chart.font_family')"
+              @change="changeTitleStyle('fontFamily')"
+            >
+              <el-option
+                v-for="option in fontFamily"
+                :key="option.value"
+                :label="option.name"
+                :value="option.value"
+              />
             </el-select>
           </el-form-item>
-          <el-form-item :label="$t('chart.text_color')" class="form-item">
-            <el-color-picker v-model="titleForm.color" class="color-picker-style" @change="changeTitleStyle" />
+          <el-form-item
+            v-show="showProperty('fontSize')"
+            :label="$t('chart.text_fontsize')"
+            class="form-item"
+          >
+            <el-select
+              v-model="titleForm.fontSize"
+              :placeholder="$t('chart.text_fontsize')"
+              size="mini"
+              @change="changeTitleStyle('fontSize')"
+            >
+              <el-option
+                v-for="option in fontSize"
+                :key="option.value"
+                :label="option.name"
+                :value="option.value"
+              />
+            </el-select>
           </el-form-item>
-          <el-form-item :label="$t('chart.text_h_position')" class="form-item">
-            <el-radio-group v-model="titleForm.hPosition" size="mini" @change="changeTitleStyle">
+          <el-form-item
+            v-show="showProperty('color')"
+            :label="$t('chart.text_color')"
+            class="form-item"
+          >
+            <el-color-picker
+              v-model="titleForm.color"
+              class="color-picker-style"
+              :predefine="predefineColors"
+              @change="changeTitleStyle('color')"
+            />
+          </el-form-item>
+          <el-form-item
+            v-show="showProperty('hPosition')"
+            :label="$t('chart.text_h_position')"
+            class="form-item"
+          >
+            <el-radio-group
+              v-model="titleForm.hPosition"
+              size="mini"
+              @change="changeTitleStyle('hPosition')"
+            >
               <el-radio-button label="left">{{ $t('chart.text_pos_left') }}</el-radio-button>
               <el-radio-button label="center">{{ $t('chart.text_pos_center') }}</el-radio-button>
               <el-radio-button label="right">{{ $t('chart.text_pos_right') }}</el-radio-button>
             </el-radio-group>
           </el-form-item>
-          <el-form-item v-show="chart.type && !chart.type.includes('table')" :label="$t('chart.text_v_position')" class="form-item">
-            <el-radio-group v-model="titleForm.vPosition" size="mini" @change="changeTitleStyle">
+          <el-form-item
+            v-show="showProperty('vPosition')"
+            :label="$t('chart.text_v_position')"
+            class="form-item"
+          >
+            <el-radio-group
+              v-model="titleForm.vPosition"
+              size="mini"
+              @change="changeTitleStyle('vPosition')"
+            >
               <el-radio-button label="top">{{ $t('chart.text_pos_top') }}</el-radio-button>
               <el-radio-button label="center">{{ $t('chart.text_pos_center') }}</el-radio-button>
               <el-radio-button label="bottom">{{ $t('chart.text_pos_bottom') }}</el-radio-button>
             </el-radio-group>
           </el-form-item>
-          <el-form-item :label="$t('chart.text_style')" class="form-item">
-            <el-checkbox v-model="titleForm.isItalic" @change="changeTitleStyle">{{ $t('chart.italic') }}</el-checkbox>
-            <el-checkbox v-model="titleForm.isBolder" @change="changeTitleStyle">{{ $t('chart.bolder') }}</el-checkbox>
+          <el-form-item
+            v-show="showProperty('isItalic') || showProperty('isBolder')"
+            :label="$t('chart.text_style')"
+            class="form-item"
+          >
+            <el-checkbox
+              v-show="showProperty('isItalic')"
+              v-model="titleForm.isItalic"
+              @change="changeTitleStyle('isItalic')"
+            >{{ $t('chart.italic') }}</el-checkbox>
+            <el-checkbox
+              v-show="showProperty('isBolder')"
+              v-model="titleForm.isBolder"
+              @change="changeTitleStyle('isBolder')"
+            >{{ $t('chart.bolder') }}</el-checkbox>
+          </el-form-item>
+          <el-form-item
+            v-show="showProperty('letterSpace')"
+            :label="$t('chart.letter_space')"
+            class="form-item"
+          >
+            <el-select
+              v-model="titleForm.letterSpace"
+              :placeholder="$t('chart.quota_letter_space')"
+              @change="changeTitleStyle('letterSpace')"
+            >
+              <el-option
+                v-for="option in fontLetterSpace"
+                :key="option.value"
+                :label="option.name"
+                :value="option.value"
+              />
+            </el-select>
+          </el-form-item>
+          <el-form-item
+            v-show="showProperty('fontShadow')"
+            :label="$t('chart.font_shadow')"
+            class="form-item"
+          >
+            <el-checkbox
+              v-model="titleForm.fontShadow"
+              @change="changeTitleStyle('fontShadow')"
+            >{{ $t('chart.font_shadow') }}</el-checkbox>
           </el-form-item>
         </div>
       </el-form>
     </el-col>
-    <!--    <div style="width: 100%">-->
-    <!--      <el-popover-->
-    <!--        v-model="isSetting"-->
-    <!--        placement="right"-->
-    <!--        width="400"-->
-    <!--        trigger="click"-->
-    <!--      >-->
-    <!--        <el-col>-->
-    <!--          <el-form ref="titleForm" :model="titleForm" label-width="80px" size="mini">-->
-    <!--            &lt;!&ndash;            <el-form-item :label="$t('chart.show')" class="form-item">&ndash;&gt;-->
-    <!--            &lt;!&ndash;              <el-checkbox v-model="titleForm.show" @change="changeTitleStyle">{{ $t('chart.show') }}</el-checkbox>&ndash;&gt;-->
-    <!--            &lt;!&ndash;            </el-form-item>&ndash;&gt;-->
-    <!--            <el-form-item :label="$t('chart.title')" class="form-item">-->
-    <!--              <el-input-->
-    <!--                v-model="titleForm.title"-->
-    <!--                size="mini"-->
-    <!--                :placeholder="$t('chart.title')"-->
-    <!--                clearable-->
-    <!--                @blur="changeTitleStyle"-->
-    <!--                @input="inputOnInput($event)"-->
-    <!--              />-->
-    <!--            </el-form-item>-->
-    <!--            <el-form-item :label="$t('chart.text_fontsize')" class="form-item">-->
-    <!--              <el-select v-model="titleForm.fontSize" :placeholder="$t('chart.text_fontsize')" size="mini" @change="changeTitleStyle">-->
-    <!--                <el-option v-for="option in fontSize" :key="option.value" :label="option.name" :value="option.value" />-->
-    <!--              </el-select>-->
-    <!--            </el-form-item>-->
-    <!--            <el-form-item :label="$t('chart.text_color')" class="form-item">-->
-    <!--              <colorPicker v-model="titleForm.color" style="margin-top: 6px;cursor: pointer;z-index: 999;border: solid 1px black" @change="changeTitleStyle" />-->
-    <!--            </el-form-item>-->
-    <!--            <el-form-item :label="$t('chart.text_h_position')" class="form-item">-->
-    <!--              <el-radio-group v-model="titleForm.hPosition" size="mini" @change="changeTitleStyle">-->
-    <!--                <el-radio-button label="left">{{ $t('chart.text_pos_left') }}</el-radio-button>-->
-    <!--                <el-radio-button label="center">{{ $t('chart.text_pos_center') }}</el-radio-button>-->
-    <!--                <el-radio-button label="right">{{ $t('chart.text_pos_right') }}</el-radio-button>-->
-    <!--              </el-radio-group>-->
-    <!--            </el-form-item>-->
-    <!--            <el-form-item v-show="chart.type && !chart.type.includes('table')" :label="$t('chart.text_v_position')" class="form-item">-->
-    <!--              <el-radio-group v-model="titleForm.vPosition" size="mini" @change="changeTitleStyle">-->
-    <!--                <el-radio-button label="top">{{ $t('chart.text_pos_top') }}</el-radio-button>-->
-    <!--                <el-radio-button label="center">{{ $t('chart.text_pos_center') }}</el-radio-button>-->
-    <!--                <el-radio-button label="bottom">{{ $t('chart.text_pos_bottom') }}</el-radio-button>-->
-    <!--              </el-radio-group>-->
-    <!--            </el-form-item>-->
-    <!--            <el-form-item :label="$t('chart.text_style')" class="form-item">-->
-    <!--              <el-checkbox v-model="titleForm.isItalic" @change="changeTitleStyle">{{ $t('chart.italic') }}</el-checkbox>-->
-    <!--              <el-checkbox v-model="titleForm.isBolder" @change="changeTitleStyle">{{ $t('chart.bolder') }}</el-checkbox>-->
-    <!--            </el-form-item>-->
-    <!--          </el-form>-->
-    <!--        </el-col>-->
-
-    <!--        <el-button slot="reference" size="mini" class="shape-item" :disabled="!titleForm.show || !hasDataPermission('manage',param.privileges)">-->
-    <!--          {{ $t('chart.title') }}<i class="el-icon-setting el-icon&#45;&#45;right" />-->
-    <!--          <el-switch-->
-    <!--            v-model="titleForm.show"-->
-    <!--            :disabled="!hasDataPermission('manage',param.privileges)"-->
-    <!--            class="switch-style"-->
-    <!--            @click.stop.native-->
-    <!--            @change="changeTitleStyle"-->
-    <!--          />-->
-    <!--        </el-button>-->
-    <!--      </el-popover>-->
-    <!--    </div>-->
   </div>
 </template>
 
 <script>
-import { DEFAULT_TITLE_STYLE } from '../../chart/chart'
+import { CHART_FONT_FAMILY, CHART_FONT_LETTER_SPACE, COLOR_PANEL, DEFAULT_TITLE_STYLE } from '../../chart/chart'
+import { checkViewTitle } from '@/components/canvas/utils/utils'
+import { mapState } from 'vuex'
 
 export default {
   name: 'TitleSelector',
@@ -124,14 +177,29 @@ export default {
     chart: {
       type: Object,
       required: true
+    },
+    propertyInner: {
+      type: Array,
+      required: false,
+      default: function() {
+        return []
+      }
     }
   },
   data() {
     return {
       titleForm: JSON.parse(JSON.stringify(DEFAULT_TITLE_STYLE)),
       fontSize: [],
-      isSetting: false
+      isSetting: false,
+      predefineColors: COLOR_PANEL,
+      fontFamily: CHART_FONT_FAMILY,
+      fontLetterSpace: CHART_FONT_LETTER_SPACE
     }
+  },
+  computed: {
+    ...mapState([
+      'batchOptStatus'
+    ])
   },
   watch: {
     'chart': {
@@ -156,8 +224,14 @@ export default {
         }
         if (customStyle.text) {
           this.titleForm = customStyle.text
+
+          this.titleForm.fontFamily = this.titleForm.fontFamily ? this.titleForm.fontFamily : DEFAULT_TITLE_STYLE.fontFamily
+          this.titleForm.letterSpace = this.titleForm.letterSpace ? this.titleForm.letterSpace : DEFAULT_TITLE_STYLE.letterSpace
+          this.titleForm.fontShadow = this.titleForm.fontShadow ? this.titleForm.fontShadow : DEFAULT_TITLE_STYLE.fontShadow
         }
-        this.titleForm.title = this.chart.title
+        if (!this.batchOptStatus) {
+          this.titleForm.title = this.chart.title
+        }
       }
     },
     init() {
@@ -170,19 +244,30 @@ export default {
       }
       this.fontSize = arr
     },
-    changeTitleStyle() {
-      if (this.titleForm.title.length < 1) {
-        this.$error(this.$t('chart.title_cannot_empty'))
-        this.titleForm.title = this.chart.title
-        return
+    changeTitleStyle(modifyName) {
+      if (!this.batchOptStatus) {
+        if (this.titleForm.title.length < 1) {
+          this.$error(this.$t('chart.title_cannot_empty'))
+          this.titleForm.title = this.chart.title
+          return
+        }
+        if (checkViewTitle('update', this.chart.id, this.titleForm.title)) {
+          this.$error(this.$t('chart.title_repeat'))
+          this.titleForm.title = this.chart.title
+          return
+        }
       }
       if (!this.titleForm.show) {
         this.isSetting = false
       }
+      this.titleForm['modifyName'] = modifyName
       this.$emit('onTextChange', this.titleForm)
     },
     inputOnInput: function(e) {
       this.$forceUpdate()
+    },
+    showProperty(property) {
+      return this.propertyInner.includes(property)
     }
   }
 }
@@ -197,11 +282,11 @@ export default {
   justify-content: space-between;
   align-items: center;
 }
-.form-item-slider>>>.el-form-item__label{
+.form-item-slider ::v-deep .el-form-item__label{
   font-size: 12px;
   line-height: 38px;
 }
-.form-item>>>.el-form-item__label{
+.form-item ::v-deep .el-form-item__label{
   font-size: 12px;
 }
 .el-select-dropdown__item{

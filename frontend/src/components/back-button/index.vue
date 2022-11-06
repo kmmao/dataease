@@ -1,5 +1,8 @@
 <template>
-  <el-icon name="back" class="back-button" @click.native="jump" />
+  <i
+    class="el-icon-arrow-left back-button"
+    @click="jump"
+  />
 </template>
 
 <script>
@@ -31,12 +34,10 @@ export default {
 </script>
 
 <style lang="scss">
-@import "~@/styles/mixin.scss";
-@import "~@/styles/variables.scss";
 
 .back-button {
   cursor: pointer;
-  margin-right: 10px;
+  margin-right: 18px;
   font-weight: 600;
 
   &:active {

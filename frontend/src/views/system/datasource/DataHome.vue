@@ -1,6 +1,9 @@
 <template>
   <el-col style="height: 100%;">
-    <el-row style="height: 100%;" class="custom-position">
+    <el-row
+      style="height: 100%;"
+      class="custom-position"
+    >
       {{ $t('datasource.please_select_left') }}
     </el-row>
   </el-col>
@@ -13,13 +16,13 @@ export default {
 </script>
 
 <style scoped>
-  .custom-position {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 14px;
-    flex-flow: row nowrap;
-    color: #9ea6b2;
-  }
+.custom-position {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  flex-flow: row nowrap;
+  color: #9ea6b2;
+}
 </style>

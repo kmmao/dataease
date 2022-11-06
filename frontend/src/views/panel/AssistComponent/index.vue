@@ -1,6 +1,10 @@
 <template>
 
-  <div class="filter-container" @dragstart="handleDragStart">
+  <div
+    class="filter-container"
+    @dragstart="handleDragStart"
+    @dragend="handleDragEnd()"
+  >
 
     <div class="widget-subject">
       <div class="filter-header">
@@ -27,7 +31,7 @@
     <div class="widget-subject">
       <div class="filter-header">
         <div class="filter-header-text">
-          <span>图片</span>
+          <span>多媒体</span>
         </div>
       </div>
 
@@ -48,35 +52,77 @@
       </div>
     </div>
 
-    <input id="input" ref="files" type="file" hidden @change="handleFileChange">
+    <div class="widget-subject">
+      <div class="filter-header">
+        <div class="filter-header-text">
+          <span>其他</span>
+        </div>
+      </div>
+
+      <div class="filter-widget-content">
+        <div
+          v-for="(item, index) in otherList"
+          :key="index"
+          :data-id="item.id"
+          :data-index="index"
+          draggable
+          :class="'filter-widget '+ (item.defaultClass || '')"
+        >
+          <div class="filter-widget-icon">
+            <i :class="(item.icon || 'el-icon-setting') + ' widget-icon-i'" />
+          </div>
+          <div class="filter-widget-text">{{ item.label }}</div>
+        </div>
+      </div>
+    </div>
+
+    <input
+      id="input"
+      ref="files"
+      type="file"
+      hidden
+      @change="handleFileChange"
+    >
 
   </div>
 
 </template>
 
 <script>
-import { assistList, pictureList } from '@/components/canvas/custom-component/component-list'
+import componentList, { assistList, pictureList, otherList } from '@/components/canvas/custom-component/component-list'
 import toast from '@/components/canvas/utils/toast'
 import { commonStyle, commonAttr } from '@/components/canvas/custom-component/component-list'
 import generateID from '@/components/canvas/utils/generateID'
+import { deepCopy, matrixBaseChange } from '@/components/canvas/utils/utils'
+import eventBus from '@/components/canvas/utils/eventBus'
+import { mapState } from 'vuex'
 
 export default {
-  name: 'FilterGroup',
+  name: 'AssisComponent',
   data() {
     return {
       assistList,
-      pictureList
+      pictureList,
+      otherList
     }
+  },
+  computed: {
+    ...mapState([
+      'canvasStyleData'
+    ])
   },
 
   methods: {
     handleDragStart(ev) {
+      this.$store.commit('setDragComponentInfo', this.componentInfo(ev.target.dataset.id))
       ev.dataTransfer.effectAllowed = 'copy'
       const dataTrans = {
         type: 'assist',
         id: ev.target.dataset.id
       }
+      this.$store.commit('clearTabMoveInfo')
       ev.dataTransfer.setData('componentInfo', JSON.stringify(dataTrans))
+      eventBus.$emit('startMoveIn')
     },
     goFile() {
       this.$refs.files.click()
@@ -115,13 +161,35 @@ export default {
             }
           })
 
-          this.$store.commit('recordSnapshot')
+          this.$store.commit('recordSnapshot', 'handleFileChange')
         }
 
         img.src = fileResult
       }
 
       reader.readAsDataURL(file)
+    },
+    componentInfo(id) {
+    // 辅助设计组件
+      let component
+      componentList.forEach(componentTemp => {
+        if (id === componentTemp.id) {
+          component = matrixBaseChange(deepCopy(componentTemp))
+        }
+      })
+      // 图片移入是 不支持矩阵 暂时无法监听窗口取消事件
+      if (component.type !== 'picture-add') {
+        component.auxiliaryMatrix = this.canvasStyleData.auxiliaryMatrix
+      } else {
+        component.auxiliaryMatrix = false
+      }
+      component.moveStatus = 'start'
+      component['canvasId'] = 'canvas-main'
+      component['canvasPid'] = '0'
+      return component
+    },
+    handleDragEnd(ev) {
+      this.$store.commit('clearDragComponentInfo')
     }
   }
 }
@@ -155,7 +223,7 @@ export default {
   .filter-header-text {
     font-size: 14px;
     max-width: 100%;
-    color: gray;
+    color: var(--TextPrimary, gray);
     text-align: left;
     white-space: pre;
     text-overflow: ellipsis;
@@ -174,7 +242,7 @@ export default {
   }
 
   .filter-widget {
-    width: 100px;
+    width: 107px;
     height: 36px;
     position: relative;
     float: left;
@@ -193,7 +261,7 @@ export default {
         color: #3685f2;
     }
     .filter-widget-text {
-        color: #3d4d66;
+         color: var(--TextActive, #3d4d66);
     }
   }
   .time-filter:hover {
@@ -214,7 +282,7 @@ export default {
         color: #23beef;
     }
     .filter-widget-text {
-        color: #3d4d66;
+        color: var(--TextActive, #3d4d66);
     }
   }
   .text-filter:hover {
@@ -234,7 +302,7 @@ export default {
         color: #37b4aa;
     }
     .filter-widget-text {
-        color: #3d4d66;
+         color: var(--TextActive, #3d4d66);
     }
   }
   .tree-filter:hover {
@@ -267,7 +335,7 @@ export default {
       height: 24px;
       position: relative;
       flex-shrink: 0;
-      font-size: 24px;
+      font-size: 24px!important;
       margin: auto;
       font-family: fineui;
       font-style: normal;
@@ -284,7 +352,8 @@ export default {
     white-space: pre;
     text-overflow: ellipsis;
     position: absolute;
-    inset: 0px 0px 0px 40px;
+    /* inset: 0px 0px 0px 40px; */
+    margin-left: 40px;
     box-sizing: border-box;
     overflow: hidden;
     overflow-x: hidden;

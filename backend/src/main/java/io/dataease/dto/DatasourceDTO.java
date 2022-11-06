@@ -1,7 +1,12 @@
 package io.dataease.dto;
 
-import io.dataease.base.domain.Datasource;
+import io.dataease.controller.request.datasource.ApiDefinition;
+import io.dataease.plugins.common.base.domain.Datasource;
+import io.dataease.plugins.common.constants.DatasourceCalculationMode;
+import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
+
+import java.util.List;
 
 /**
  * Author: wangjiahao
@@ -11,6 +16,9 @@ import lombok.Data;
 @Data
 public class DatasourceDTO extends Datasource {
 
+    @ApiModelProperty("权限")
     private String privileges;
-
+    private List<ApiDefinition> apiConfiguration;
+    private String typeDesc;
+    private DatasourceCalculationMode calculationMode;
 }

@@ -19,7 +19,7 @@ public class F2CLogoutFilter extends LogoutFilter {
         try {
             subject.logout();
         } catch (Exception ex) {
-            logger.error("退出登录错误",ex);
+            logger.error("退出登录错误", ex);
         }
         return true;
     }

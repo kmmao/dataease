@@ -1,7 +1,8 @@
 package io.dataease.plugins.config;
 
-import io.dataease.base.domain.MyPlugin;
+import io.dataease.plugins.common.base.domain.MyPlugin;
 import io.dataease.plugins.loader.ClassloaderResponsity;
+import io.dataease.plugins.loader.ControllerLoader;
 import io.dataease.plugins.loader.ModuleClassLoader;
 import io.dataease.plugins.loader.MybatisLoader;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,11 +20,13 @@ public class LoadjarUtil {
     @Autowired
     private MybatisLoader mybatisLoader;
 
+    @Autowired
+    private ControllerLoader controllerLoader;
+
     public List<?> loadJar(String jarPath, MyPlugin myPlugin)  throws Exception{
         File jar = new File(jarPath);
         URI uri = jar.toURI();
-        String moduleName = jarPath.substring(jarPath.lastIndexOf("/")+1,jarPath.lastIndexOf("."));
-
+        String moduleName = myPlugin.getModuleName() + "-" + myPlugin.getVersion();
 
         if(ClassloaderResponsity.getInstance().containsClassLoader(moduleName)){
             ClassloaderResponsity.getInstance().removeClassLoader(moduleName);
@@ -34,6 +37,10 @@ public class LoadjarUtil {
         Thread.currentThread().setContextClassLoader(classLoader);
         classLoader.initBean();
         mybatisLoader.loadMybatis(myPlugin);
+
+        List<String> controllers = classLoader.getRegisteredController();
+        controllerLoader.registerController(controllers);
+
         ClassloaderResponsity.getInstance().addClassLoader(moduleName,classLoader);
 
 
